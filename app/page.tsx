@@ -1,0 +1,184 @@
+'use client';
+
+import { useState } from 'react';
+import { 
+  Search, 
+  Globe, 
+  Sparkles, 
+  Users, 
+  ArrowLeftRight, 
+  Puzzle, 
+  UserSearch, 
+  Mic, 
+  HelpCircle, 
+  Zap,
+  Frown
+} from 'lucide-react';
+import Navbar from '@/components/Navbar';
+import QuizCard from '@/components/QuizCard';
+import ProgressSection from '@/components/ProgressSection';
+
+const QUIZZES = [
+  {
+    title: 'Quiz about English',
+    description: 'Master the fundamentals of the global language. Practice grammar, vocabulary, and common phrases.',
+    icon: Globe,
+    iconColor: 'text-[#6cb2ff]',
+    iconBg: 'bg-[#6cb2ff]/10',
+    actionText: 'Start Module',
+    actionColor: 'text-[#6cb2ff]',
+    href: '/quiz/english',
+  },
+  {
+    title: 'Quiz about Verb To Be',
+    description: 'The cornerstone of English communication. Perfect your usage of am, is, and are in various contexts.',
+    icon: Sparkles,
+    iconColor: 'text-[#91f8b8]',
+    iconBg: 'bg-[#91f8b8]/10',
+    actionText: 'Practice Now',
+    actionColor: 'text-[#91f8b8]',
+    href: '/quiz/verb-to-be',
+  },
+  {
+    title: 'Quiz about Pronouns',
+    description: 'Who, what, and whom. Clarify subject and object pronouns to make your speech more fluid and natural.',
+    icon: Users,
+    iconColor: 'text-[#bd9dff]',
+    iconBg: 'bg-[#bd9dff]/10',
+    actionText: 'Begin Quiz',
+    actionColor: 'text-[#bd9dff]',
+    href: '/quiz/pronouns',
+  },
+  {
+    title: 'Quiz about Comparative and Superlative',
+    description: 'Learn how to describe differences. Faster, stronger, better — master the art of comparison and superlatives.',
+    icon: ArrowLeftRight,
+    iconColor: 'text-amber-400',
+    iconBg: 'bg-amber-400/10',
+    actionText: 'Review Rules',
+    actionColor: 'text-amber-400',
+    href: '/quiz/comparative-superlative',
+  },
+  {
+    title: 'Vocabulary Memory Match',
+    description: 'Test your memory while expanding your lexicon. Fun matching games for business, travel, and more.',
+    icon: Puzzle,
+    iconColor: 'text-pink-400',
+    iconBg: 'bg-pink-400/10',
+    actionText: 'Play Game',
+    actionColor: 'text-pink-400',
+    href: '/quiz/memory-match',
+  },
+  {
+    title: 'Object Pronoun Quiz',
+    description: 'Focus on me, you, him, her, it, us, and them. Perfect your object pronoun placement in sentences.',
+    icon: UserSearch,
+    iconColor: 'text-indigo-400',
+    iconBg: 'bg-indigo-400/10',
+    actionText: 'Start Quiz',
+    actionColor: 'text-indigo-400',
+    href: '/quiz/object-pronouns',
+  },
+  {
+    title: 'Third Person Quiz',
+    description: "Don't forget the 's'! Master verb conjugations for he, she, and it in the simple present tense.",
+    icon: Mic,
+    iconColor: 'text-cyan-400',
+    iconBg: 'bg-cyan-400/10',
+    actionText: 'Check Grammar',
+    actionColor: 'text-cyan-400',
+    href: '/quiz/third-person',
+  },
+  {
+    title: 'Questions to Practice',
+    description: 'Learn how to form various question types correctly. Practice auxiliaries and question words.',
+    icon: HelpCircle,
+    iconColor: 'text-orange-400',
+    iconBg: 'bg-orange-400/10',
+    actionText: 'Practice Now',
+    actionColor: 'text-orange-400',
+    href: '/quiz/practice-questions',
+  },
+  {
+    title: 'Daily Blitz',
+    description: 'A mix of everything! Keep your streak alive with a personalized 5-minute quiz session.',
+    icon: Zap,
+    iconColor: 'text-[#002442]',
+    iconBg: 'bg-white/20',
+    actionText: 'Claim XP',
+    actionColor: 'text-[#002442]',
+    isHighlight: true,
+    href: '/quiz/daily-blitz',
+  },
+];
+
+
+export default function Home() {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredQuizzes = QUIZZES.filter(quiz => 
+    quiz.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    quiz.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <>
+      <Navbar />
+      <main className="pt-28 pb-20 px-6 max-w-7xl mx-auto">
+        {/* Hero Section */}
+        <header className="mb-12">
+          <h1 className="font-headline text-4xl md:text-5xl font-extrabold tracking-tight mb-4 text-gray-900 dark:text-[#e5ebfc]">
+            Knowledge <span className="text-[#6cb2ff]">Quizzes</span>
+          </h1>
+          <p className="text-gray-600 dark:text-[#a5abbb] max-w-2xl text-lg">
+            Challenge your skills with our interactive modules. Each quiz is designed to accelerate your fluency through immersive practice.
+          </p>
+        </header>
+
+        {/* Search Bar */}
+        <div className="mb-10 max-w-2xl relative">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <Search className="w-5 h-5 text-gray-400 dark:text-[#a5abbb]" />
+          </div>
+          <input 
+            type="text" 
+            placeholder="Search for a quiz..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="block w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-[#121a28] border border-gray-200 dark:border-[#424855]/20 rounded-xl text-gray-900 dark:text-[#e5ebfc] placeholder:text-gray-400 dark:placeholder:text-[#a5abbb]/50 focus:outline-none focus:ring-2 focus:ring-[#6cb2ff]/50 focus:border-[#6cb2ff] transition-all font-headline"
+          />
+        </div>
+
+        {/* Bento Grid Quiz Modules */}
+        <div id="quizzes">
+          {filteredQuizzes.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredQuizzes.map((quiz, index) => (
+                <QuizCard key={index} {...quiz} />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="w-20 h-20 bg-gray-100 dark:bg-[#121a28] rounded-full flex items-center justify-center mb-6">
+                <Frown className="w-10 h-10 text-gray-400" />
+              </div>
+              <h3 className="text-2xl font-headline font-bold text-gray-900 dark:text-[#e5ebfc] mb-2">No quizzes found</h3>
+              <p className="text-gray-500 dark:text-[#a5abbb]">We couldn&apos;t find any quizzes matching &quot;{searchQuery}&quot;. Try a different search term.</p>
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="mt-6 text-[#6cb2ff] font-bold hover:underline"
+              >
+                Clear search
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Progress Section */}
+        <div id="stats">
+          <ProgressSection />
+        </div>
+      </main>
+    </>
+  );
+}
