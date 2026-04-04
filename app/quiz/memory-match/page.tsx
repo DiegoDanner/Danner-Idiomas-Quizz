@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, RotateCcw, Puzzle, Trophy, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
-import { GoogleGenAI, Modality } from "@google/genai";
+import { GoogleGenerativeAI as GoogleGenAI } from "@google/generative-ai";
 import { useAuthAction } from '@/hooks/useAuthAction';
 import { useAuth } from '@/context/AuthContext';
 import AuthModal from '@/components/AuthModal';
@@ -105,12 +105,13 @@ export default function MemoryMatch() {
 
     const fetchWithRetry = async (retries = 3, delay = 1000): Promise<string | null> => {
       try {
-        const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY });
-        const response = await ai.models.generateContent({
+        const ai = new GoogleGenAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY || '');
+        const model = ai.getGenerativeModel({ model: "gemini-2.5-flash-preview-tts" });
+        const response = await (model as any).generateContent({
           model: "gemini-2.5-flash-preview-tts",
           contents: [{ parts: [{ text: word }] }],
           config: {
-            responseModalities: [Modality.AUDIO],
+            responseModalities: ["AUDIO" as any],
             speechConfig: {
               voiceConfig: {
                 prebuiltVoiceConfig: { voiceName: 'Kore' },
