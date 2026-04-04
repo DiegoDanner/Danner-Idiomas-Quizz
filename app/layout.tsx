@@ -4,6 +4,7 @@ import { ThemeProvider } from 'next-themes';
 import { AuthProvider } from '@/context/AuthContext';
 import MobileNav from '@/components/MobileNav';
 import HoverTranslator from '@/components/HoverTranslator';
+import ChatWidget from '@/components/ChatWidget';
 import './globals.css'; // Global styles
 
 const inter = Inter({
@@ -43,6 +44,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
             {children}
             <MobileNav />
             <HoverTranslator />
+            <ChatWidget />
           </AuthProvider>
         </ThemeProvider>
       </body>
