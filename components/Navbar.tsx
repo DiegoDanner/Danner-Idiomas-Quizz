@@ -30,7 +30,16 @@ export default function Navbar() {
     <header className="fixed top-0 z-50 w-full bg-white/80 dark:bg-[#080e1a]/80 backdrop-blur-xl border-b border-[#424855]/15 shadow-2xl shadow-black/40 transition-colors duration-300">
       <nav className="flex justify-between items-center w-full px-6 py-4 max-w-7xl mx-auto font-headline tracking-tight">
         <div className="flex items-center gap-8">
-          <a href="https://danneridiomas.netlify.app/" rel="noopener noreferrer" className="text-2xl font-bold text-[#6cb2ff]">Danner Idiomas</a>
+          <a href="https://danneridiomas.netlify.app/" rel="noopener noreferrer" className="text-2xl font-bold text-[#6cb2ff] flex items-center gap-2">
+            <Image
+              src="/android-chrome-512x512.png"
+              alt="Danner Idiomas Logo"
+              width={32}
+              height={32}
+              className="rounded-md"
+            />
+            Danner Idiomas
+          </a>
           <div className="hidden md:flex items-center gap-6">
             <Link className="text-[#a5abbb] hover:text-[#6cb2ff] transition-colors" href="/">Menu</Link>
           </div>
