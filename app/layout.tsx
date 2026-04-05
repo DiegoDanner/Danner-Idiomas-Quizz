@@ -27,6 +27,15 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
     <html lang="en" className={`${inter.variable} ${plusJakartaSans.variable}`} suppressHydrationWarning translate="no">
       <head>
         <meta name="google" content="notranslate" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              fetch('/teacher-danner.png')
+                .then(res => console.log('Teacher Danner Avatar check:', res.ok ? 'OK' : 'FAILED', res.status))
+                .catch(err => console.error('Teacher Danner Avatar check error:', err));
+            `,
+          }}
+        />
       </head>
       <body className="bg-white dark:bg-[#080e1a] text-[#1a1a1a] dark:text-[#e5ebfc] selection:bg-[#6cb2ff]/30 min-h-screen font-sans transition-colors duration-300 notranslate">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
