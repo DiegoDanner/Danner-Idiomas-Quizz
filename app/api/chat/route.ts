@@ -5,8 +5,8 @@ export async function POST(req: Request) {
   try {
     const { messages, userMessage } = await req.json();
     
-    // Use the PRIVATE key (without NEXT_PUBLIC_)
-    const apiKey = process.env.GEMINI_API_KEY;
+    // Try multiple possible environment variable names to ensure compatibility
+    const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.API_KEY;
     
     if (!apiKey) {
       return NextResponse.json(
