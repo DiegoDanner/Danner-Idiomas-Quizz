@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MessageCircle, X, Send, User, Bot, Loader2, Sparkles, Mic } from 'lucide-react';
+import { MessageCircle, X, Send, User, Bot, Loader2, Sparkles, Mic, Volume2, VolumeX } from 'lucide-react';
 import Image from 'next/image';
 import LiveVoiceMode from './LiveVoiceMode';
 
@@ -17,8 +17,60 @@ export default function ChatWidget() {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentSubtitle, setCurrentSubtitle] = useState('');
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Stop speech when component unmounts or chat closes
+  useEffect(() => {
+    return () => {
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  const speak = useCallback((text: string) => {
+    if (!window.speechSynthesis || isMuted) return;
+
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    // Language detection logic
+    // We check for common Portuguese words to decide the voice language
+    const ptWords = ['o', 'a', 'é', 'e', 'do', 'da', 'em', 'um', 'uma', 'não', 'sim', 'com', 'para', 'por', 'mais', 'mas', 'como', 'você', 'professor', 'aula', 'inglês'];
+    const words = text.toLowerCase().split(/\W+/);
+    const ptMatchCount = words.filter(word => ptWords.includes(word)).length;
+    
+    // If more than 10% of words are Portuguese or at least 2 matches in short text
+    utterance.lang = (ptMatchCount > words.length * 0.1 || ptMatchCount >= 2) ? 'pt-BR' : 'en-US';
+    
+    // Voice selection (optional but good for consistency)
+    const voices = window.speechSynthesis.getVoices();
+    const preferredVoice = voices.find(v => v.lang.startsWith(utterance.lang.split('-')[0]) && v.name.includes('Google'));
+    if (preferredVoice) utterance.voice = preferredVoice;
+
+    utterance.onstart = () => {
+      setCurrentSubtitle(text);
+      setIsSpeaking(true);
+    };
+
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      setCurrentSubtitle('');
+    };
+
+    utterance.onerror = () => {
+      setIsSpeaking(false);
+      setCurrentSubtitle('');
+    };
+
+    window.speechSynthesis.speak(utterance);
+  }, [isMuted]);
 
   // Auto scroll to bottom
   useEffect(() => {
@@ -63,6 +115,7 @@ export default function ChatWidget() {
       const aiResponse = data.content || "Desculpe, tive um probleminha. Pode repetir?";
       
       setMessages(prev => [...prev, { role: 'model', content: aiResponse }]);
+      speak(aiResponse);
     } catch (error: any) {
       console.error("Chat error details:", error);
       
@@ -116,7 +169,17 @@ export default function ChatWidget() {
               </div>
               <div className="flex items-center gap-2">
                 <button 
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => setIsMuted(!isMuted)}
+                  className={`p-2 rounded-xl transition-colors ${isMuted ? 'text-red-400 hover:bg-red-400/10' : 'text-gray-400 hover:bg-white/5'}`}
+                  title={isMuted ? "Unmute Teacher Danner" : "Mute Teacher Danner"}
+                >
+                  {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                </button>
+                <button 
+                  onClick={() => {
+                    setIsOpen(false);
+                    window.speechSynthesis?.cancel();
+                  }}
                   className="p-2 hover:bg-white/5 rounded-xl transition-colors text-gray-400"
                 >
                   <X className="w-5 h-5" />
@@ -202,6 +265,26 @@ export default function ChatWidget() {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Subtitles Overlay */}
+            <div className="relative h-0 overflow-visible">
+              <AnimatePresence>
+                {isSpeaking && currentSubtitle && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute bottom-4 left-4 right-4 z-50 pointer-events-none"
+                  >
+                    <div className="bg-black/90 backdrop-blur-md border border-[#6cb2ff]/30 p-4 rounded-2xl shadow-[0_0_20px_rgba(108,178,255,0.2)]">
+                      <p className="text-white text-center text-sm font-bold leading-relaxed tracking-wide">
+                        {currentSubtitle}
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Input */}

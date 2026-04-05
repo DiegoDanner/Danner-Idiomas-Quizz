@@ -42,7 +42,7 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
   }, []);
 
   const startSession = useCallback(async () => {
-    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY?.trim();
     if (!apiKey) {
       setError("Gemini API Key not found. Please configure it in your environment.");
       return;

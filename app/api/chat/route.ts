@@ -5,8 +5,8 @@ export async function POST(req: Request) {
   try {
     const { messages, userMessage } = await req.json();
     
-    // Try multiple possible environment variable names to ensure compatibility
-    const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+    // Always use NEXT_PUBLIC_GEMINI_API_KEY as per guidelines
+    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY?.trim();
     
     if (!apiKey) {
       console.error("No API Key found in environment variables");
