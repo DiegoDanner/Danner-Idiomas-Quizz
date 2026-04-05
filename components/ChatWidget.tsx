@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MessageCircle, X, Send, User, Bot, Loader2, Sparkles, Mic } from 'lucide-react';
+import Image from 'next/image';
 import LiveVoiceMode from './LiveVoiceMode';
 
 interface Message {
@@ -95,14 +96,21 @@ export default function ChatWidget() {
             {/* Header */}
             <div className="p-4 bg-[#161b22] border-b border-gray-800 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#6cb2ff]/20 flex items-center justify-center">
-                  <User className="w-6 h-6 text-[#6cb2ff]" />
+                <div className="relative w-10 h-10 rounded-full border-2 border-[#6cb2ff]/30 shadow-lg overflow-hidden bg-[#0d1117]">
+                  <Image
+                    src="/teacher-danner.png"
+                    alt="Teacher Danner avatar"
+                    fill
+                    className="object-cover"
+                    sizes="40px"
+                    priority
+                  />
                 </div>
                 <div>
                   <h3 className="font-bold text-white leading-tight">Teacher Danner</h3>
                   <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-xs text-gray-400">Online now</span>
+                    <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse" />
+                    <span className="text-[10px] uppercase tracking-wider font-bold text-green-500/80">Online</span>
                   </div>
                 </div>
               </div>
@@ -158,10 +166,22 @@ export default function ChatWidget() {
                   className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div className={`flex gap-2 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                    <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center ${
-                      msg.role === 'user' ? 'bg-blue-500/20' : 'bg-[#6cb2ff]/20'
+                    <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center overflow-hidden border border-gray-800 ${
+                      msg.role === 'user' ? 'bg-blue-500/20' : 'bg-[#0d1117]'
                     }`}>
-                      {msg.role === 'user' ? <User className="w-4 h-4 text-blue-500" /> : <Bot className="w-4 h-4 text-[#6cb2ff]" />}
+                      {msg.role === 'user' ? (
+                        <User className="w-4 h-4 text-blue-500" />
+                      ) : (
+                        <div className="relative w-full h-full">
+                          <Image
+                            src="/teacher-danner.png"
+                            alt="Teacher Danner"
+                            fill
+                            className="object-cover"
+                            sizes="32px"
+                          />
+                        </div>
+                      )}
                     </div>
                     <div className={`p-3 rounded-2xl text-sm leading-relaxed ${
                       msg.role === 'user' 
