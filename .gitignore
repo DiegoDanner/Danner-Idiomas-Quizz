@@ -3,5 +3,12 @@ node_modules/
 coverage/
 .DS_Store
 *.log
-.env*
-!.env.local
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Allow .env.example to be tracked (it should NOT contain real keys)
+!.env.example

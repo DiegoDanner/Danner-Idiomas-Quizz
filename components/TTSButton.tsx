@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Volume2, Loader2 } from 'lucide-react';
-import { GoogleGenAI, Modality } from "@google/genai";
 
 interface TTSButtonProps {
   text: string;
@@ -18,29 +17,21 @@ export default function TTSButton({ text, className = "" }: TTSButtonProps) {
 
     setIsLoading(true);
     try {
-      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-      if (!apiKey) {
-        console.error("Gemini API key is missing");
-        return;
-      }
-
-      const ai = new GoogleGenAI({ apiKey });
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-preview-tts",
-        contents: [{ parts: [{ text: `Say clearly: ${text}` }] }],
-        config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: { voiceName: 'Kore' },
-            },
-          },
+      const response = await fetch('/api/tts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ text }),
       });
 
-      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-      if (base64Audio) {
-        await playPCM(base64Audio);
+      if (!response.ok) {
+        throw new Error('Failed to generate audio');
+      }
+
+      const data = await response.json();
+      if (data.audio) {
+        await playPCM(data.audio);
       }
     } catch (error) {
       console.error("Error in TTS:", error);

@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, RotateCcw, Puzzle, Trophy, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
-import { GoogleGenAI, Modality } from "@google/genai";
 import { useAuthAction } from '@/hooks/useAuthAction';
 import { useAuth } from '@/context/AuthContext';
 import AuthModal from '@/components/AuthModal';
@@ -105,23 +104,27 @@ export default function MemoryMatch() {
 
     const fetchWithRetry = async (retries = 3, delay = 1000): Promise<string | null> => {
       try {
-        const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY });
-        const response = await ai.models.generateContent({
-          model: "gemini-2.5-flash-preview-tts",
-          contents: [{ parts: [{ text: word }] }],
-          config: {
-            responseModalities: [Modality.AUDIO],
-            speechConfig: {
-              voiceConfig: {
-                prebuiltVoiceConfig: { voiceName: 'Kore' },
-              },
-            },
+        const response = await fetch('/api/tts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
           },
+          body: JSON.stringify({ text: word }),
         });
 
-        return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
+        if (!response.ok) {
+          const errorData = await response.json();
+          if (retries > 0 && (response.status === 429 || errorData.error?.includes('quota'))) {
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return fetchWithRetry(retries - 1, delay * 2);
+          }
+          throw new Error(errorData.error || 'Failed to generate audio');
+        }
+
+        const data = await response.json();
+        return data.audio || null;
       } catch (error: any) {
-        if (retries > 0 && (error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('RESOURCE_EXHAUSTED'))) {
+        if (retries > 0) {
           await new Promise(resolve => setTimeout(resolve, delay));
           return fetchWithRetry(retries - 1, delay * 2);
         }
