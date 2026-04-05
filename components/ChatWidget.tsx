@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MessageCircle, X, Send, User, Bot, Loader2, Sparkles } from 'lucide-react';
+import { GoogleGenAI } from "@google/genai";
 
 interface Message {
   role: 'user' | 'model';
@@ -34,34 +35,50 @@ export default function ChatWidget() {
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
+    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+    if (!apiKey) {
+      setMessages(prev => [...prev, { 
+        role: 'model', 
+        content: "Ops! Parece que a chave da API (API Key) não foi configurada. No GitHub/Vercel, adicione a variável NEXT_PUBLIC_GEMINI_API_KEY nas configurações do projeto." 
+      }]);
+      return;
+    }
+
     const userMessage = input.trim();
     setInput('');
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const ai = new GoogleGenAI({ apiKey });
+      const chat = ai.chats.create({
+        model: "gemini-3-flash-preview",
+        config: {
+          systemInstruction: "You are Teacher Danner, a friendly and experienced English teacher from Brazil helping students learn English. You explain things simply, give examples, and encourage students. You never say you are an AI. You respond in English or Portuguese depending on the student. If the student writes in English, lightly and gently correct any mistakes before answering their question. Keep answers short, practical, and easy to understand. Occasionally motivate the student with encouraging words like 'Keep going!', 'You're doing great!', or 'Vamos lá!'.",
         },
-        body: JSON.stringify({
-          messages: messages,
-          userMessage: userMessage,
-        }),
+        history: messages.map(m => ({
+          role: m.role,
+          parts: [{ text: m.content }]
+        }))
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch from chat API');
-      }
-
-      const data = await response.json();
-      const aiResponse = data.content || "Desculpe, tive um probleminha. Pode repetir?";
+      const streamResponse = await chat.sendMessageStream({ message: userMessage });
       
-      setMessages(prev => [...prev, { role: 'model', content: aiResponse }]);
+      let fullResponse = "";
+      setMessages(prev => [...prev, { role: 'model', content: "" }]);
+
+      for await (const chunk of streamResponse) {
+        const text = chunk.text || "";
+        fullResponse += text;
+        setMessages(prev => {
+          const newMessages = [...prev];
+          newMessages[newMessages.length - 1].content = fullResponse;
+          return newMessages;
+        });
+      }
     } catch (error) {
       console.error("Chat error:", error);
-      setMessages(prev => [...prev, { role: 'model', content: "Ops! Tive um problema técnico. Vamos tentar de novo? (Check your GEMINI_API_KEY configuration on the server)" }]);
+      setMessages(prev => [...prev, { role: 'model', content: "Ops! Tive um problema técnico. Vamos tentar de novo? (Verifique se sua API Key está correta no .env.local)" }]);
     } finally {
       setIsLoading(false);
     }

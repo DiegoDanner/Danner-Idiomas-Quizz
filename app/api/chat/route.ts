@@ -6,6 +6,11 @@ export async function POST(req: Request) {
     const { messages, userMessage } = await req.json();
     
     // Try multiple possible environment variable names to ensure compatibility
+    console.log("Checking API Keys...");
+    console.log("GEMINI_API_KEY exists:", !!process.env.GEMINI_API_KEY);
+    console.log("NEXT_PUBLIC_GEMINI_API_KEY exists:", !!process.env.NEXT_PUBLIC_GEMINI_API_KEY);
+    console.log("API_KEY exists:", !!process.env.API_KEY);
+
     const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.API_KEY;
     
     if (!apiKey) {
