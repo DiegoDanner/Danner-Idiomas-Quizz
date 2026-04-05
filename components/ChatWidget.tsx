@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MessageCircle, X, Send, User, Bot, Loader2, Sparkles } from 'lucide-react';
+import { MessageCircle, X, Send, User, Bot, Loader2, Sparkles, Mic } from 'lucide-react';
+import LiveVoiceMode from './LiveVoiceMode';
 
 interface Message {
   role: 'user' | 'model';
@@ -11,6 +12,7 @@ interface Message {
 
 export default function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -93,8 +95,8 @@ export default function ChatWidget() {
             {/* Header */}
             <div className="p-4 bg-[#161b22] border-b border-gray-800 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
-                  <User className="w-6 h-6 text-orange-500" />
+                <div className="w-10 h-10 rounded-full bg-[#6cb2ff]/20 flex items-center justify-center">
+                  <User className="w-6 h-6 text-[#6cb2ff]" />
                 </div>
                 <div>
                   <h3 className="font-bold text-white leading-tight">Teacher Danner</h3>
@@ -104,13 +106,22 @@ export default function ChatWidget() {
                   </div>
                 </div>
               </div>
-              <button 
-                onClick={() => setIsOpen(false)}
-                className="p-2 hover:bg-white/5 rounded-xl transition-colors text-gray-400"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setIsOpen(false)}
+                  className="p-2 hover:bg-white/5 rounded-xl transition-colors text-gray-400"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
+
+            {/* Voice Mode Overlay */}
+            <AnimatePresence>
+              {isVoiceMode && (
+                <LiveVoiceMode onClose={() => setIsVoiceMode(false)} />
+              )}
+            </AnimatePresence>
 
             {/* Messages */}
             <div 
@@ -119,14 +130,22 @@ export default function ChatWidget() {
             >
               {messages.length === 0 && (
                 <div className="text-center py-8 space-y-4">
-                  <div className="w-16 h-16 bg-orange-500/10 rounded-2xl flex items-center justify-center mx-auto">
-                    <Sparkles className="w-8 h-8 text-orange-500" />
+                  <div className="w-16 h-16 bg-[#6cb2ff]/10 rounded-2xl flex items-center justify-center mx-auto">
+                    <Sparkles className="w-8 h-8 text-[#6cb2ff]" />
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-white font-bold text-lg">Hello! I&apos;m Teacher Danner.</p>
-                    <p className="text-gray-400 text-sm px-8">
-                      How can I help you with your English today? Grammar, vocabulary, or quiz questions?
-                    </p>
+                  <div className="space-y-2">
+                    <div className="space-y-1">
+                      <p className="text-white font-bold text-lg">Hello! I&apos;m Teacher Danner.</p>
+                      <p className="text-[#6cb2ff] font-medium text-sm">Olá! Eu sou o Professor Danner.</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-gray-400 text-sm px-8">
+                        How can I help you with your English today? Grammar, vocabulary, or quiz questions?
+                      </p>
+                      <p className="text-gray-500 text-xs px-8 italic">
+                        Como posso te ajudar com seu inglês hoje? Gramática, vocabulário ou dúvidas dos quizzes?
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
@@ -140,9 +159,9 @@ export default function ChatWidget() {
                 >
                   <div className={`flex gap-2 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                     <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center ${
-                      msg.role === 'user' ? 'bg-blue-500/20' : 'bg-orange-500/20'
+                      msg.role === 'user' ? 'bg-blue-500/20' : 'bg-[#6cb2ff]/20'
                     }`}>
-                      {msg.role === 'user' ? <User className="w-4 h-4 text-blue-500" /> : <Bot className="w-4 h-4 text-orange-500" />}
+                      {msg.role === 'user' ? <User className="w-4 h-4 text-blue-500" /> : <Bot className="w-4 h-4 text-[#6cb2ff]" />}
                     </div>
                     <div className={`p-3 rounded-2xl text-sm leading-relaxed ${
                       msg.role === 'user' 
@@ -158,7 +177,7 @@ export default function ChatWidget() {
               {isLoading && (
                 <div className="flex justify-start">
                   <div className="flex gap-2 items-center bg-[#161b22] border border-gray-800 p-3 rounded-2xl rounded-tl-none">
-                    <Loader2 className="w-4 h-4 text-orange-500 animate-spin" />
+                    <Loader2 className="w-4 h-4 text-[#6cb2ff] animate-spin" />
                     <span className="text-xs text-gray-400">Teacher Danner is typing...</span>
                   </div>
                 </div>
@@ -168,19 +187,28 @@ export default function ChatWidget() {
             {/* Input */}
             <div className="p-4 bg-[#161b22] border-t border-gray-800">
               <div className="relative flex items-center gap-2">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                  placeholder="Ask Teacher Danner..."
-                  className="flex-1 bg-[#0d1117] border border-gray-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-orange-500 transition-colors"
-                />
+                <div className="relative flex-1">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                    placeholder="Ask Teacher Danner..."
+                    className="w-full bg-[#0d1117] border border-gray-800 rounded-xl pl-4 pr-12 py-3 text-sm text-white focus:outline-none focus:border-[#6cb2ff] transition-colors"
+                  />
+                  <button
+                    onClick={() => setIsVoiceMode(true)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-[#6cb2ff] transition-colors"
+                    title="Voice Mode"
+                  >
+                    <Mic className="w-5 h-5" />
+                  </button>
+                </div>
                 <button
                   onClick={handleSend}
                   disabled={!input.trim() || isLoading}
-                  className="p-3 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-3 bg-[#6cb2ff] text-white rounded-xl hover:bg-[#6cb2ff]/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Send className="w-4 h-4" />
                 </button>
@@ -195,15 +223,20 @@ export default function ChatWidget() {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="group relative flex items-center gap-3 bg-orange-500 text-white px-6 py-4 rounded-full shadow-2xl hover:bg-orange-600 transition-all pointer-events-auto"
+        className="group relative flex items-center gap-3 bg-[#6cb2ff] text-white px-6 py-4 rounded-full shadow-2xl hover:bg-[#6cb2ff]/80 transition-all pointer-events-auto"
       >
         <span className="font-bold whitespace-nowrap overflow-hidden max-w-0 group-hover:max-w-[200px] transition-all duration-500 ease-in-out">
           Talk to Teacher Danner
         </span>
-        <div className="relative">
-          {isOpen ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}
+        <div className="relative flex items-center gap-2">
+          {isOpen ? <X className="w-6 h-6" /> : (
+            <>
+              <Mic className="w-4 h-4 text-white/50" />
+              <MessageCircle className="w-6 h-6" />
+            </>
+          )}
           {!isOpen && (
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 border-2 border-orange-500 rounded-full" />
+            <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 border-2 border-[#6cb2ff] rounded-full" />
           )}
         </div>
       </motion.button>

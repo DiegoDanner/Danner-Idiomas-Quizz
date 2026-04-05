@@ -270,12 +270,12 @@ export default function PracticeQuestionsQuiz() {
               className="text-center py-12"
             >
               <div className="mb-8 flex justify-center">
-                <div className="w-24 h-24 bg-orange-400/10 rounded-3xl flex items-center justify-center">
-                  <HelpCircle className="w-12 h-12 text-orange-400" />
+                <div className="w-24 h-24 bg-[#6cb2ff]/10 rounded-3xl flex items-center justify-center">
+                  <HelpCircle className="w-12 h-12 text-[#6cb2ff]" />
                 </div>
               </div>
               <h1 className="font-headline text-4xl md:text-5xl font-extrabold mb-6 text-gray-900 dark:text-[#e5ebfc]">
-                QUESTIONS TO <span className="text-orange-400">PRACTICE</span>
+                QUESTIONS TO <span className="text-[#6cb2ff]">PRACTICE</span>
               </h1>
               <p className="text-xl text-gray-600 dark:text-[#a5abbb] mb-12 max-w-lg mx-auto">
                 Test your English skills with a variety of questions. You have 20 seconds for each question. Good luck!
@@ -284,7 +284,7 @@ export default function PracticeQuestionsQuiz() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={startQuiz}
-                className="bg-orange-500 text-white px-12 py-5 rounded-2xl font-bold text-xl shadow-lg shadow-orange-500/20 hover:bg-orange-600 transition-colors"
+                className="bg-[#6cb2ff] text-white px-12 py-5 rounded-2xl font-bold text-xl shadow-lg shadow-[#6cb2ff]/20 hover:bg-[#6cb2ff]/80 transition-colors"
               >
                 Start Quiz
               </motion.button>
@@ -301,7 +301,7 @@ export default function PracticeQuestionsQuiz() {
             >
               <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="bg-orange-400/10 px-4 py-2 rounded-xl text-orange-400 font-bold flex items-center gap-2">
+                  <div className="bg-[#6cb2ff]/10 px-4 py-2 rounded-xl text-[#6cb2ff] font-bold flex items-center gap-2">
                     <Timer className={`w-5 h-5 ${timeLeft <= 5 ? 'animate-pulse text-red-500' : ''}`} />
                     {timeLeft}s
                   </div>
@@ -314,7 +314,7 @@ export default function PracticeQuestionsQuiz() {
                     <div 
                       key={idx}
                       className={`h-2 w-4 rounded-full transition-all duration-300 ${
-                        idx === currentIndex ? 'bg-orange-400 w-8' : idx < currentIndex ? 'bg-orange-400/40' : 'bg-gray-200 dark:bg-[#121a28]'
+                        idx === currentIndex ? 'bg-[#6cb2ff] w-8' : idx < currentIndex ? 'bg-[#6cb2ff]/40' : 'bg-gray-200 dark:bg-[#121a28]'
                       }`}
                     />
                   ))}
@@ -332,7 +332,7 @@ export default function PracticeQuestionsQuiz() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {currentQuestion.answerOptions.map((option) => {
-                  let statusClass = "bg-white dark:bg-[#121a28] border-gray-200 dark:border-[#424855]/10 text-gray-700 dark:text-[#e5ebfc] hover:border-orange-400/50";
+                  let statusClass = "bg-white dark:bg-[#121a28] border-gray-200 dark:border-[#424855]/10 text-gray-700 dark:text-[#e5ebfc] hover:border-[#6cb2ff]/50";
                   
                   if (isAnswered) {
                     if (option.isCorrect) {
@@ -376,7 +376,7 @@ export default function PracticeQuestionsQuiz() {
                   >
                     <div className={`p-6 rounded-2xl border flex items-start gap-4 ${
                       timeLeft === 0 
-                        ? 'bg-orange-500/10 border-orange-500/30 text-orange-700 dark:text-orange-400'
+                        ? 'bg-[#6cb2ff]/10 border-[#6cb2ff]/30 text-[#6cb2ff] dark:text-[#6cb2ff]'
                         : selectedOption === currentQuestion.answerOptions.find(o => o.isCorrect)?.text
                         ? 'bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-400' 
                         : 'bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-400'
@@ -398,7 +398,7 @@ export default function PracticeQuestionsQuiz() {
 
                     <button
                       onClick={handleNext}
-                      className="w-full bg-orange-500 text-white font-bold py-5 rounded-2xl text-xl flex items-center justify-center gap-2 hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/20"
+                      className="w-full bg-[#6cb2ff] text-white font-bold py-5 rounded-2xl text-xl flex items-center justify-center gap-2 hover:bg-[#6cb2ff]/80 transition-all shadow-lg shadow-[#6cb2ff]/20"
                     >
                       {currentIndex === shuffledQuestions.length - 1 ? 'Finish Quiz' : 'Next Question'}
                       <ArrowRight className="w-6 h-6" />
@@ -417,14 +417,14 @@ export default function PracticeQuestionsQuiz() {
               className="text-center py-12"
             >
               <div className="mb-8 flex justify-center">
-                <div className="w-32 h-32 bg-orange-500/10 rounded-full flex items-center justify-center">
-                  <Trophy className="w-16 h-16 text-orange-500" />
+                <div className="w-32 h-32 bg-[#6cb2ff]/10 rounded-full flex items-center justify-center">
+                  <Trophy className="w-16 h-16 text-[#6cb2ff]" />
                 </div>
               </div>
               <h2 className="font-headline text-4xl font-extrabold mb-4 text-gray-900 dark:text-[#e5ebfc]">
                 Quiz Complete!
               </h2>
-              <div className="text-7xl font-black text-orange-500 mb-6">
+              <div className="text-7xl font-black text-[#6cb2ff] mb-6">
                 {score} / {shuffledQuestions.length}
               </div>
               <p className="text-xl text-gray-600 dark:text-[#a5abbb] mb-12">
@@ -441,7 +441,7 @@ export default function PracticeQuestionsQuiz() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={startQuiz}
-                  className="bg-orange-500 text-white px-8 py-4 rounded-xl font-bold flex items-center justify-center gap-2"
+                  className="bg-[#6cb2ff] text-white px-8 py-4 rounded-xl font-bold flex items-center justify-center gap-2"
                 >
                   <RotateCcw className="w-5 h-5" />
                   Play Again

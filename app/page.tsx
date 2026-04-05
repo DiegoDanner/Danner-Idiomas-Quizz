@@ -93,10 +93,10 @@ const QUIZZES = [
     title: 'Questions to Practice',
     description: 'Learn how to form various question types correctly. Practice auxiliaries and question words.',
     icon: HelpCircle,
-    iconColor: 'text-orange-400',
-    iconBg: 'bg-orange-400/10',
+    iconColor: 'text-[#6cb2ff]',
+    iconBg: 'bg-[#6cb2ff]/10',
     actionText: 'Practice Now',
-    actionColor: 'text-orange-400',
+    actionColor: 'text-[#6cb2ff]',
     href: '/quiz/practice-questions',
   },
   {

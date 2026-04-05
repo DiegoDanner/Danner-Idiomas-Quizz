@@ -1,5 +1,5 @@
 {
   "name": "Danner Idiomas - Quiz Center",
   "description": "Interactive knowledge quizzes to accelerate your fluency through immersive practice.",
-  "requestFramePermissions": []
+  "requestFramePermissions": ["microphone"]
 }
