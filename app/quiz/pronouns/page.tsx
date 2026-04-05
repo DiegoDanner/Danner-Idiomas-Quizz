@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, CheckCircle2, RotateCcw, ArrowRight, Users, AlertCircle, ChevronDown, Info } from 'lucide-react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
+import TTSButton from '@/components/TTSButton';
 import { saveQuizProgress } from '@/lib/progress';
 import { useAuthAction } from '@/hooks/useAuthAction';
 import AuthModal from '@/components/AuthModal';
@@ -160,8 +161,24 @@ export default function PronounsQuiz() {
 
   const renderQuestion = (question: Question) => {
     const parts = question.text.split(/(\{\d+\})/);
+    
+    // Helper to get the full correct sentence for TTS
+    const getFullCorrectSentence = () => {
+      return parts.map((part) => {
+        const match = part.match(/\{(\d+)\}/);
+        if (match) {
+          const placeholderIdx = parseInt(match[1]);
+          return question.placeholders[placeholderIdx]?.correctAnswers[0] || '...';
+        }
+        return part;
+      }).join('');
+    };
+
     return (
-      <div className="bg-gray-50 dark:bg-[#121a28] p-10 rounded-[2rem] border border-gray-200 dark:border-[#424855]/10 shadow-xl w-full">
+      <div className="bg-gray-50 dark:bg-[#121a28] p-10 rounded-[2rem] border border-gray-200 dark:border-[#424855]/10 shadow-xl w-full relative group">
+        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+          <TTSButton text={getFullCorrectSentence()} />
+        </div>
         <div className="text-gray-900 dark:text-[#e5ebfc] text-2xl md:text-3xl font-headline font-bold leading-relaxed flex flex-wrap items-center justify-center gap-x-2 text-center">
           {parts.map((part, i) => {
             const match = part.match(/\{(\d+)\}/);

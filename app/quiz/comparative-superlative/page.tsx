@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Timer, CheckCircle2, XCircle, RotateCcw, ArrowRight, ArrowLeftRight, Trophy } from 'lucide-react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
+import TTSButton from '@/components/TTSButton';
 import { useAuthAction } from '@/hooks/useAuthAction';
 import AuthModal from '@/components/AuthModal';
 import { saveQuizProgress } from '@/lib/progress';
@@ -338,10 +339,13 @@ export default function ComparativeQuiz() {
               </div>
 
               {/* Question */}
-              <div className="bg-gray-50 dark:bg-[#121a28] p-8 rounded-3xl border border-gray-200 dark:border-[#424855]/10 shadow-sm">
-                <h2 className="font-headline text-2xl md:text-3xl font-bold text-gray-900 dark:text-[#e5ebfc] leading-tight">
-                  {currentQuestion.question}
-                </h2>
+              <div className="bg-gray-50 dark:bg-[#121a28] p-8 rounded-3xl border border-gray-200 dark:border-[#424855]/10 shadow-sm relative group">
+                <div className="flex justify-between items-start gap-4">
+                  <h2 className="font-headline text-2xl md:text-3xl font-bold text-gray-900 dark:text-[#e5ebfc] leading-tight flex-1">
+                    {currentQuestion.question}
+                  </h2>
+                  <TTSButton text={currentQuestion.question.replace(/___/g, '...')} className="mt-1" />
+                </div>
               </div>
 
               {/* Options */}
@@ -368,8 +372,20 @@ export default function ComparativeQuiz() {
                       className={`p-6 rounded-2xl border-2 text-left font-bold text-lg transition-all duration-300 flex justify-between items-center ${statusClass}`}
                     >
                       <span>{answer.text}</span>
-                      {isAnswered && answer.correct && <CheckCircle2 className="w-6 h-6 text-green-500" />}
-                      {isAnswered && !answer.correct && selectedAnswer === idx && <XCircle className="w-6 h-6 text-red-500" />}
+                      <div className="flex items-center gap-2">
+                        {isAnswered && answer.correct && (
+                          <>
+                            <TTSButton 
+                              text={currentQuestion.question.includes('___') 
+                                ? currentQuestion.question.replace(/___/g, answer.text)
+                                : answer.text} 
+                              className="mr-2" 
+                            />
+                            <CheckCircle2 className="w-6 h-6 text-green-500" />
+                          </>
+                        )}
+                        {isAnswered && !answer.correct && selectedAnswer === idx && <XCircle className="w-6 h-6 text-red-500" />}
+                      </div>
                     </motion.button>
                   );
                 })}

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, CheckCircle2, RotateCcw, ArrowRight, Sparkles, AlertCircle, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
+import TTSButton from '@/components/TTSButton';
 import { saveQuizProgress } from '@/lib/progress';
 import { useAuthAction } from '@/hooks/useAuthAction';
 import AuthModal from '@/components/AuthModal';
@@ -156,8 +157,24 @@ export default function VerbToBeQuiz() {
 
   const renderLine = (line: typeof flatLines[0]) => {
     const parts = line.text.split(/(\{\d+\})/);
+    
+    // Helper to get the full correct sentence for TTS
+    const getFullCorrectSentence = () => {
+      return parts.map((part) => {
+        const match = part.match(/\{(\d+)\}/);
+        if (match) {
+          const placeholderIdx = parseInt(match[1]);
+          return line.placeholders[placeholderIdx]?.correctAnswers[0] || '...';
+        }
+        return part;
+      }).join('');
+    };
+
     return (
-      <div className="flex gap-4 items-start bg-gray-50 dark:bg-[#121a28] p-10 rounded-[2rem] border border-gray-200 dark:border-[#424855]/10 shadow-xl">
+      <div className="flex gap-4 items-start bg-gray-50 dark:bg-[#121a28] p-10 rounded-[2rem] border border-gray-200 dark:border-[#424855]/10 shadow-xl relative group">
+        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+          <TTSButton text={getFullCorrectSentence()} />
+        </div>
         <div className="w-12 h-12 rounded-2xl bg-[#6cb2ff]/10 flex items-center justify-center shrink-0">
           <span className="font-black text-2xl text-[#6cb2ff]">{line.speaker}</span>
         </div>

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, CheckCircle2, RotateCcw, ArrowRight, HelpCircle, Timer, Trophy, XCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
+import TTSButton from '@/components/TTSButton';
 import { useAuthAction } from '@/hooks/useAuthAction';
 import { useAuth } from '@/context/AuthContext';
 import AuthModal from '@/components/AuthModal';
@@ -320,10 +321,13 @@ export default function PracticeQuestionsQuiz() {
                 </div>
               </div>
 
-              <div className="bg-gray-50 dark:bg-[#121a28] p-10 rounded-[2.5rem] border border-gray-200 dark:border-[#424855]/10 shadow-xl">
-                <h2 className="text-2xl md:text-3xl font-headline font-bold text-gray-900 dark:text-[#e5ebfc] text-center leading-relaxed">
-                  {currentQuestion.question}
-                </h2>
+              <div className="bg-gray-50 dark:bg-[#121a28] p-10 rounded-[2.5rem] border border-gray-200 dark:border-[#424855]/10 shadow-xl relative group">
+                <div className="flex justify-between items-start gap-4">
+                  <h2 className="text-2xl md:text-3xl font-headline font-bold text-gray-900 dark:text-[#e5ebfc] text-center leading-relaxed flex-1">
+                    {currentQuestion.question}
+                  </h2>
+                  <TTSButton text={currentQuestion.question.replace(/_____/g, '...')} className="mt-1" />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -349,7 +353,15 @@ export default function PracticeQuestionsQuiz() {
                       disabled={isAnswered}
                       className={`p-6 rounded-2xl border-2 font-bold text-lg transition-all text-center ${statusClass}`}
                     >
-                      {option.text}
+                      <div className="flex-1 text-center">{option.text}</div>
+                      {isAnswered && option.isCorrect && (
+                        <TTSButton 
+                          text={currentQuestion.question.includes('_____') 
+                            ? currentQuestion.question.replace(/_____/g, option.text)
+                            : option.text} 
+                          className="ml-2" 
+                        />
+                      )}
                     </motion.button>
                   );
                 })}
