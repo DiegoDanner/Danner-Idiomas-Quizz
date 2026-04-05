@@ -35,11 +35,13 @@ export default function ChatWidget() {
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
-    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-    if (!apiKey) {
+    // Try multiple possible environment variable names
+    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || (process.env as any).API_KEY;
+    
+    if (!apiKey || apiKey.trim() === "") {
       setMessages(prev => [...prev, { 
         role: 'model', 
-        content: "Ops! Parece que a chave da API (API Key) não foi configurada. No GitHub/Vercel, adicione a variável NEXT_PUBLIC_GEMINI_API_KEY nas configurações do projeto." 
+        content: "Ops! A chave da API não foi encontrada. Verifique se o arquivo .env.local existe e contém NEXT_PUBLIC_GEMINI_API_KEY com um valor válido." 
       }]);
       return;
     }
@@ -76,9 +78,23 @@ export default function ChatWidget() {
           return newMessages;
         });
       }
-    } catch (error) {
-      console.error("Chat error:", error);
-      setMessages(prev => [...prev, { role: 'model', content: "Ops! Tive um problema técnico. Vamos tentar de novo? (Verifique se sua API Key está correta no .env.local)" }]);
+    } catch (error: any) {
+      console.error("Chat error details:", error);
+      
+      let errorMessage = "Ops! Tive um problema técnico.";
+      
+      if (error?.message?.includes("API_KEY_INVALID")) {
+        errorMessage += " Sua chave da API parece ser inválida.";
+      } else if (error?.message?.includes("quota")) {
+        errorMessage += " Limite de uso atingido. Tente novamente em alguns instantes.";
+      } else if (error?.message?.includes("model")) {
+        errorMessage += " O modelo selecionado não está disponível para esta chave.";
+      } else if (error?.message) {
+        // Show a snippet of the actual error to help debugging
+        errorMessage += ` Detalhes: ${error.message.substring(0, 100)}`;
+      }
+
+      setMessages(prev => [...prev, { role: 'model', content: errorMessage + " Vamos tentar de novo?" }]);
     } finally {
       setIsLoading(false);
     }
