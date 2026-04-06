@@ -28,7 +28,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Next.js 15 compatibility
+  // Next.js 16 compatibility
+  turbopack: {},
+  // Next.js 15/16 compatibility
   webpack: (config, {dev, isServer}) => {
     // HMR is disabled in AI Studio via DISABLE_HMR env var.
     // Do not modify—file watching is disabled to prevent flickering during agent edits.
