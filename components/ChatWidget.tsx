@@ -2,9 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, X, Send, User, Bot, Loader2, Sparkles, Mic } from 'lucide-react';
+import { MessageCircle, X, Send, User, Bot, Loader2, Sparkles } from 'lucide-react';
 import Image from 'next/image';
-import LiveVoiceMode from './LiveVoiceMode';
 import { GoogleGenAI } from "@google/genai";
 
 interface Message {
@@ -14,7 +13,6 @@ interface Message {
 
 export default function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
-  const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -136,13 +134,6 @@ export default function ChatWidget() {
               </div>
             </div>
 
-            {/* Voice Mode Overlay */}
-            <AnimatePresence>
-              {isVoiceMode && (
-                <LiveVoiceMode onClose={() => setIsVoiceMode(false)} />
-              )}
-            </AnimatePresence>
-
             {/* Messages */}
             <div 
               ref={scrollRef}
@@ -227,15 +218,8 @@ export default function ChatWidget() {
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                     placeholder="Ask Teacher Danner..."
-                    className="w-full bg-[#0d1117] border border-gray-800 rounded-xl pl-4 pr-12 py-3 text-sm text-white focus:outline-none focus:border-[#6cb2ff] transition-colors"
+                    className="w-full bg-[#0d1117] border border-gray-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#6cb2ff] transition-colors"
                   />
-                  <button
-                    onClick={() => setIsVoiceMode(true)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-[#6cb2ff] transition-colors"
-                    title="Voice Mode"
-                  >
-                    <Mic className="w-5 h-5" />
-                  </button>
                 </div>
                 <button
                   onClick={handleSend}
@@ -262,10 +246,7 @@ export default function ChatWidget() {
         </span>
         <div className="relative flex items-center gap-2">
           {isOpen ? <X className="w-6 h-6" /> : (
-            <>
-              <Mic className="w-4 h-4 text-white/50" />
-              <MessageCircle className="w-6 h-6" />
-            </>
+            <MessageCircle className="w-6 h-6" />
           )}
           {!isOpen && (
             <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 border-2 border-[#6cb2ff] rounded-full" />

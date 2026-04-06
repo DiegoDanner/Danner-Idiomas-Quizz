@@ -20,6 +20,16 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: 'Danner Idiomas - Quiz Center',
   description: 'Interactive knowledge quizzes to accelerate your fluency through immersive practice.',
+  icons: {
+    icon: [
+      { url: '/favicon.png', sizes: '48x48', type: 'image/png' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
+  manifest: '/site.webmanifest',
 };
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
@@ -27,6 +37,10 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
     <html lang="en" className={`${inter.variable} ${plusJakartaSans.variable}`} suppressHydrationWarning translate="no">
       <head>
         <meta name="google" content="notranslate" />
+        <link rel="icon" href="/favicon.png" sizes="48x48" />
+        <link rel="icon" href="/favicon-32x32.png" sizes="32x32" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="manifest" href="/site.webmanifest" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
