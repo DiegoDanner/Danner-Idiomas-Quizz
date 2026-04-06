@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { getUserProgress } from '@/lib/progress';
 import Navbar from '@/components/Navbar';

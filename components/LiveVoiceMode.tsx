@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleGenAI, Modality, LiveServerMessage } from "@google/genai";
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, MicOff, PhoneOff, Loader2, Volume2, VolumeX, AlertCircle } from 'lucide-react';
 import { AudioStreamer } from '@/lib/audio-utils';
 
@@ -16,8 +16,8 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
   const [showExplanation, setShowExplanation] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [transcript, setTranscript] = useState<string>('');
-  const [aiTranscript, setAiTranscript] = useState<string>('');
+  const [currentSubtitle, setCurrentSubtitle] = useState<string>('');
+  const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   
   const audioStreamerRef = useRef<AudioStreamer | null>(null);
   const sessionRef = useRef<any>(null);
@@ -39,9 +39,20 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
     audioStreamerRef.current?.stopCapture();
     setIsConnected(false);
     setIsConnecting(false);
+    setIsAiSpeaking(false);
+    setCurrentSubtitle('');
   }, []);
 
   const startSession = useCallback(async () => {
+    // Check if API key is selected (required for Gemini 3 series models)
+    if (typeof window !== 'undefined' && (window as any).aistudio) {
+      const hasKey = await (window as any).aistudio.hasSelectedApiKey();
+      if (!hasKey) {
+        await (window as any).aistudio.openSelectKey();
+        // After opening, we assume success as per guidelines
+      }
+    }
+
     const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY?.trim();
     if (!apiKey) {
       setError("Gemini API Key not found. Please configure it in your environment.");
@@ -62,6 +73,13 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
         }
       });
 
+      // Hook into speech end event for precise subtitle control
+      audioStreamerRef.current.setSpeechEndCallback(() => {
+        setIsAiSpeaking(false);
+        // We don't clear the text immediately to allow for a smooth fade out
+        // The AnimatePresence handles the exit animation
+      });
+
       const session = await ai.live.connect({
         model: "gemini-3.1-flash-live-preview",
         config: {
@@ -79,18 +97,30 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
             setIsConnecting(false);
             audioStreamerRef.current?.startCapture();
           },
-          onmessage: (message: LiveServerMessage) => {
-            const base64Audio = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
-            if (base64Audio) {
-              audioStreamerRef.current?.playAudioChunk(base64Audio);
-            }
+          onmessage: async (message: LiveServerMessage) => {
+            const parts = message.serverContent?.modelTurn?.parts;
+            if (!parts) return;
 
-            if (message.serverContent?.modelTurn?.parts?.[0]?.text) {
-              setAiTranscript(prev => prev + ' ' + message.serverContent?.modelTurn?.parts?.[0]?.text);
+            for (const part of parts) {
+              if (part.inlineData?.data) {
+                setIsAiSpeaking(true);
+                await audioStreamerRef.current?.playAudioChunk(part.inlineData.data);
+              }
+
+              if (part.text) {
+                const textPart = part.text;
+                setCurrentSubtitle(prev => {
+                  // If it's a new turn (AI wasn't speaking), replace. Otherwise append.
+                  const newText = prev && isAiSpeaking ? prev + ' ' + textPart : textPart;
+                  return newText;
+                });
+              }
             }
 
             if (message.serverContent?.interrupted) {
               console.log("AI Interrupted");
+              setIsAiSpeaking(false);
+              setCurrentSubtitle('');
             }
           },
           onerror: (err) => {
@@ -112,16 +142,19 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
       setError(`Failed to connect: ${err.message}`);
       setIsConnecting(false);
     }
-  }, [stopSession]);
+  }, [stopSession, isAiSpeaking]);
+
+
+  const handleStart = async () => {
+    setShowExplanation(false);
+    await startSession();
+  };
 
   useEffect(() => {
-    if (!showExplanation) {
-      startSession();
-    }
     return () => {
       stopSession();
     };
-  }, [startSession, stopSession, showExplanation]);
+  }, [stopSession]);
 
   if (showExplanation) {
     return (
@@ -146,7 +179,7 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
         </div>
         <div className="flex flex-col w-full gap-3">
           <button
-            onClick={() => setShowExplanation(false)}
+            onClick={handleStart}
             className="w-full py-4 bg-[#6cb2ff] text-white rounded-2xl font-bold hover:bg-[#6cb2ff]/80 transition-all shadow-lg shadow-[#6cb2ff]/20 flex flex-col items-center justify-center"
           >
             <span>Start Speaking</span>
@@ -239,15 +272,24 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
             <PhoneOff className="w-8 h-8" />
           </button>
         </div>
+      </div>
 
-        {/* Live Transcript (Optional) */}
-        <div className="h-24 overflow-y-auto text-sm text-gray-500 italic px-4">
-          {aiTranscript && (
-            <p className="animate-in fade-in slide-in-from-bottom-2">
-              &quot;{aiTranscript.slice(-100)}...&quot;
-            </p>
+      {/* Subtitles Overlay */}
+      <div className="absolute bottom-12 left-0 right-0 flex justify-center px-6 pointer-events-none">
+        <AnimatePresence>
+          {isAiSpeaking && currentSubtitle && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="max-w-[70%] bg-black/60 backdrop-blur-sm border border-white/10 p-4 rounded-2xl shadow-2xl"
+            >
+              <p className="text-white text-lg md:text-xl font-medium leading-relaxed text-center drop-shadow-md">
+                {currentSubtitle}
+              </p>
+            </motion.div>
           )}
-        </div>
+        </AnimatePresence>
       </div>
     </motion.div>
   );

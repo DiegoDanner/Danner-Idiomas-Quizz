@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { MessageCircle, X, Send, User, Bot, Loader2, Sparkles, Mic, Volume2, VolumeX } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MessageCircle, X, Send, User, Bot, Loader2, Sparkles, Mic } from 'lucide-react';
 import Image from 'next/image';
 import LiveVoiceMode from './LiveVoiceMode';
+import { GoogleGenAI } from "@google/genai";
 
 interface Message {
   role: 'user' | 'model';
@@ -17,60 +18,8 @@ export default function ChatWidget() {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [currentSubtitle, setCurrentSubtitle] = useState('');
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  // Stop speech when component unmounts or chat closes
-  useEffect(() => {
-    return () => {
-      if (window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-      }
-    };
-  }, []);
-
-  const speak = useCallback((text: string) => {
-    if (!window.speechSynthesis || isMuted) return;
-
-    // Cancel any ongoing speech
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    
-    // Language detection logic
-    // We check for common Portuguese words to decide the voice language
-    const ptWords = ['o', 'a', 'é', 'e', 'do', 'da', 'em', 'um', 'uma', 'não', 'sim', 'com', 'para', 'por', 'mais', 'mas', 'como', 'você', 'professor', 'aula', 'inglês'];
-    const words = text.toLowerCase().split(/\W+/);
-    const ptMatchCount = words.filter(word => ptWords.includes(word)).length;
-    
-    // If more than 10% of words are Portuguese or at least 2 matches in short text
-    utterance.lang = (ptMatchCount > words.length * 0.1 || ptMatchCount >= 2) ? 'pt-BR' : 'en-US';
-    
-    // Voice selection (optional but good for consistency)
-    const voices = window.speechSynthesis.getVoices();
-    const preferredVoice = voices.find(v => v.lang.startsWith(utterance.lang.split('-')[0]) && v.name.includes('Google'));
-    if (preferredVoice) utterance.voice = preferredVoice;
-
-    utterance.onstart = () => {
-      setCurrentSubtitle(text);
-      setIsSpeaking(true);
-    };
-
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      setCurrentSubtitle('');
-    };
-
-    utterance.onerror = () => {
-      setIsSpeaking(false);
-      setCurrentSubtitle('');
-    };
-
-    window.speechSynthesis.speak(utterance);
-  }, [isMuted]);
 
   // Auto scroll to bottom
   useEffect(() => {
@@ -95,35 +44,45 @@ export default function ChatWidget() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: messages,
-          userMessage: userMessage,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch from chat API');
+      // Check if API key is selected (required for some models/regions)
+      if (typeof window !== 'undefined' && (window as any).aistudio) {
+        const hasKey = await (window as any).aistudio.hasSelectedApiKey();
+        if (!hasKey) {
+          await (window as any).aistudio.openSelectKey();
+          // After opening, we assume success as per guidelines
+        }
       }
 
-      const data = await response.json();
-      const aiResponse = data.content || "Desculpe, tive um probleminha. Pode repetir?";
+      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY?.trim();
+      
+      if (!apiKey) {
+        throw new Error("API Key not configured. Please check your environment variables.");
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
+      const chat = ai.chats.create({
+        model: "gemini-3-flash-preview",
+        config: {
+          systemInstruction: "You are Teacher Danner, a friendly and experienced English teacher from Brazil helping students learn English. You explain things simply, give examples, and encourage students. You never say you are an AI. You respond in English or Portuguese depending on the student. If the student writes in English, lightly and gently correct any mistakes before answering their question. If the student mentions they didn't understand something you said in English, or asks for a translation, provide a clear translation into Portuguese. Keep answers short, practical, and easy to understand. Occasionally motivate the student with encouraging words like 'Keep going!', 'You're doing great!', or 'Vamos lá!'.",
+        },
+        history: messages.map((m) => ({
+          role: m.role,
+          parts: [{ text: m.content }]
+        }))
+      });
+
+      const response = await chat.sendMessage({ message: userMessage });
+      const aiResponse = response.text || "Desculpe, tive um probleminha. Pode repetir?";
       
       setMessages(prev => [...prev, { role: 'model', content: aiResponse }]);
-      speak(aiResponse);
     } catch (error: any) {
       console.error("Chat error details:", error);
       
       let errorMessage = "Ops! Tive um problema técnico.";
       
-      if (error?.message?.includes("API Key")) {
-        errorMessage += " A chave da API não está configurada corretamente no servidor.";
-      } else if (error?.message?.includes("quota")) {
+      if (error?.message?.includes("API key not valid") || error?.message?.includes("API Key")) {
+        errorMessage += " A chave da API não está configurada corretamente.";
+      } else if (error?.message?.includes("quota") || error?.message?.includes("429")) {
         errorMessage += " Limite de uso atingido. Tente novamente em alguns instantes.";
       } else {
         errorMessage += ` Detalhes: ${error.message.substring(0, 100)}`;
@@ -169,17 +128,7 @@ export default function ChatWidget() {
               </div>
               <div className="flex items-center gap-2">
                 <button 
-                  onClick={() => setIsMuted(!isMuted)}
-                  className={`p-2 rounded-xl transition-colors ${isMuted ? 'text-red-400 hover:bg-red-400/10' : 'text-gray-400 hover:bg-white/5'}`}
-                  title={isMuted ? "Unmute Teacher Danner" : "Mute Teacher Danner"}
-                >
-                  {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                </button>
-                <button 
-                  onClick={() => {
-                    setIsOpen(false);
-                    window.speechSynthesis?.cancel();
-                  }}
+                  onClick={() => setIsOpen(false)}
                   className="p-2 hover:bg-white/5 rounded-xl transition-colors text-gray-400"
                 >
                   <X className="w-5 h-5" />
@@ -265,26 +214,6 @@ export default function ChatWidget() {
                   </div>
                 </div>
               )}
-            </div>
-
-            {/* Subtitles Overlay */}
-            <div className="relative h-0 overflow-visible">
-              <AnimatePresence>
-                {isSpeaking && currentSubtitle && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute bottom-4 left-4 right-4 z-50 pointer-events-none"
-                  >
-                    <div className="bg-black/90 backdrop-blur-md border border-[#6cb2ff]/30 p-4 rounded-2xl shadow-[0_0_20px_rgba(108,178,255,0.2)]">
-                      <p className="text-white text-center text-sm font-bold leading-relaxed tracking-wide">
-                        {currentSubtitle}
-                      </p>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </div>
 
             {/* Input */}

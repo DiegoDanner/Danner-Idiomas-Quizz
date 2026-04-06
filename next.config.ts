@@ -2,9 +2,6 @@ import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: false,
   },
@@ -31,7 +28,8 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  webpack: (config, {dev}) => {
+  // Next.js 15 compatibility
+  webpack: (config, {dev, isServer}) => {
     // HMR is disabled in AI Studio via DISABLE_HMR env var.
     // Do not modify—file watching is disabled to prevent flickering during agent edits.
     if (dev && process.env.DISABLE_HMR === 'true') {
@@ -39,6 +37,15 @@ const nextConfig: NextConfig = {
         ignored: /.*/,
       };
     }
+    
+    // Ensure internal chunks are handled correctly
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+      };
+    }
+
     return config;
   },
 };

@@ -10,26 +10,41 @@ export class AudioStreamer {
   private source: MediaStreamAudioSourceNode | null = null;
   private nextStartTime: number = 0;
   private isPlaying: boolean = false;
+  private onSpeechEnd: (() => void) | null = null;
+  private speechEndTimeout: NodeJS.Timeout | null = null;
 
   constructor(private onAudioData: (base64Data: string) => void) {}
 
-  async startCapture() {
-    try {
+  setSpeechEndCallback(callback: () => void) {
+    this.onSpeechEnd = callback;
+  }
+
+  /**
+   * Initializes the AudioContext. Must be called from a user gesture.
+   */
+  async init() {
+    if (!this.audioContext) {
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
         sampleRate: 16000,
       });
+      if (this.audioContext.state === 'suspended') {
+        await this.audioContext.resume();
+      }
+    }
+    return this.audioContext;
+  }
+
+  async startCapture() {
+    try {
+      await this.init();
+      
+      if (!this.audioContext) return;
 
       this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      if (!this.audioContext) {
-        console.warn('AudioContext was closed before capture started');
-        return;
-      }
-
       this.source = this.audioContext.createMediaStreamSource(this.stream);
       
       // Using ScriptProcessorNode for simplicity in this environment
-      // 4096 buffer size at 16kHz is ~250ms
       this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
 
       this.processor.onaudioprocess = (e) => {
@@ -64,13 +79,20 @@ export class AudioStreamer {
       this.audioContext.close();
       this.audioContext = null;
     }
+    if (this.speechEndTimeout) {
+      clearTimeout(this.speechEndTimeout);
+    }
   }
 
-  playAudioChunk(base64Data: string) {
+  async playAudioChunk(base64Data: string) {
     if (!this.audioContext) {
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
         sampleRate: 24000, // Gemini Live output is usually 24kHz
       });
+    }
+
+    if (this.audioContext.state === 'suspended') {
+      await this.audioContext.resume();
     }
 
     const pcmData = this.base64ToArrayBuffer(base64Data);
@@ -91,6 +113,18 @@ export class AudioStreamer {
     source.start(this.nextStartTime);
     this.nextStartTime += audioBuffer.duration;
     this.isPlaying = true;
+
+    // Handle speech end callback
+    if (this.speechEndTimeout) {
+      clearTimeout(this.speechEndTimeout);
+    }
+    const delay = (this.nextStartTime - currentTime) * 1000;
+    this.speechEndTimeout = setTimeout(() => {
+      this.isPlaying = false;
+      if (this.onSpeechEnd) {
+        this.onSpeechEnd();
+      }
+    }, delay);
   }
 
   private float32ToPcm(float32Array: Float32Array): ArrayBuffer {

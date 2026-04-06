@@ -1,7 +1,7 @@
 'use client';
 
 import { TrendingUp, BarChart3, Loader2 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getUserProgress } from '@/lib/progress';

@@ -1,7 +1,7 @@
 'use client';
 
 import { ArrowRight, LucideIcon } from 'lucide-react';
-import { motion, useMotionValue, useSpring, useTransform } from 'motion/react';
+import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { MouseEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthAction } from '@/hooks/useAuthAction';

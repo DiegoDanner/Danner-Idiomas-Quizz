@@ -2,7 +2,7 @@
 
 import { Moon, Sun, LogOut, User as UserIcon } from 'lucide-react';
 import Image from 'next/image';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';

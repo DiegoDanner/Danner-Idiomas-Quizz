@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, CheckCircle2, RotateCcw, ArrowRight, Users, AlertCircle, ChevronDown, Info } from 'lucide-react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';

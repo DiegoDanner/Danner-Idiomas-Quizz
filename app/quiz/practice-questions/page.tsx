@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, CheckCircle2, RotateCcw, ArrowRight, HelpCircle, Timer, Trophy, XCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';

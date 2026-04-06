@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, RotateCcw, Puzzle, Trophy, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
@@ -9,6 +9,7 @@ import { useAuthAction } from '@/hooks/useAuthAction';
 import { useAuth } from '@/context/AuthContext';
 import AuthModal from '@/components/AuthModal';
 import { saveQuizProgress } from '@/lib/progress';
+import { GoogleGenAI, Modality } from "@google/genai";
 
 // Master list of 30 words with emojis
 const MASTER_WORDS = [
@@ -102,38 +103,36 @@ export default function MemoryMatch() {
       window.speechSynthesis.speak(utterance);
     };
 
-    const fetchWithRetry = async (retries = 3, delay = 1000): Promise<string | null> => {
-      try {
-        const response = await fetch('/api/tts', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ text: word }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          if (retries > 0 && (response.status === 429 || errorData.error?.includes('quota'))) {
-            await new Promise(resolve => setTimeout(resolve, delay));
-            return fetchWithRetry(retries - 1, delay * 2);
-          }
-          throw new Error(errorData.error || 'Failed to generate audio');
-        }
-
-        const data = await response.json();
-        return data.audio || null;
-      } catch (error: any) {
-        if (retries > 0) {
-          await new Promise(resolve => setTimeout(resolve, delay));
-          return fetchWithRetry(retries - 1, delay * 2);
-        }
-        throw error;
-      }
-    };
-
     try {
-      const base64Audio = await fetchWithRetry();
+      // Check if API key is selected
+      if (typeof window !== 'undefined' && (window as any).aistudio) {
+        const hasKey = await (window as any).aistudio.hasSelectedApiKey();
+        if (!hasKey) {
+          await (window as any).aistudio.openSelectKey();
+        }
+      }
+
+      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY?.trim();
+      if (!apiKey) {
+        throw new Error("API Key not configured.");
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-tts",
+        contents: [{ parts: [{ text: `Say clearly: ${word}` }] }],
+        config: {
+          responseModalities: [Modality.AUDIO],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: 'Charon' },
+            },
+          },
+        },
+      });
+
+      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      
       if (base64Audio) {
         const binaryString = atob(base64Audio);
         const bytes = new Uint8Array(binaryString.length);

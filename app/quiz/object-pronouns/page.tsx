@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, CheckCircle2, RotateCcw, ArrowRight, UserSearch, AlertCircle, ChevronDown, Info } from 'lucide-react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
+import TTSButton from '@/components/TTSButton';
 import { useAuthAction } from '@/hooks/useAuthAction';
 import { useAuth } from '@/context/AuthContext';
 import AuthModal from '@/components/AuthModal';
@@ -185,7 +186,15 @@ export default function ObjectPronounsQuiz() {
   const renderQuestion = (question: Question) => {
     const parts = question.story.split(/(\{\d+\})/);
     return (
-      <div className="bg-gray-50 dark:bg-[#121a28] p-10 rounded-[2rem] border border-gray-200 dark:border-[#424855]/10 shadow-xl w-full">
+      <div className="bg-gray-50 dark:bg-[#121a28] p-10 rounded-[2rem] border border-gray-200 dark:border-[#424855]/10 shadow-xl w-full relative group">
+        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+          <TTSButton 
+            text={question.story.replace(/\{(\d+)\}/g, (match, index) => {
+              const placeholder = question.placeholders[index];
+              return userAnswers[placeholder.id] || '...';
+            })} 
+          />
+        </div>
         <div className="text-gray-900 dark:text-[#e5ebfc] text-xl md:text-2xl font-headline font-bold leading-relaxed flex flex-wrap items-center justify-center gap-x-2 text-center">
           {parts.map((part, i) => {
             const match = part.match(/\{(\d+)\}/);
@@ -339,9 +348,12 @@ export default function ObjectPronounsQuiz() {
                   >
                     <div className="flex items-start gap-3">
                       <Info className="w-6 h-6 text-indigo-400 shrink-0 mt-1" />
-                      <p className="text-gray-900 dark:text-[#e5ebfc] font-medium text-lg">
-                        {currentQuestion.explanation}
-                      </p>
+                      <div className="flex-1">
+                        <p className="text-gray-900 dark:text-[#e5ebfc] font-medium text-lg">
+                          {currentQuestion.explanation}
+                        </p>
+                      </div>
+                      <TTSButton text={currentQuestion.explanation} className="mt-1" />
                     </div>
                   </motion.div>
                 )}
