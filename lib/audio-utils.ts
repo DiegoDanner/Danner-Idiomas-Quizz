@@ -42,6 +42,7 @@ export class AudioStreamer {
 
       this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
+      if (!this.audioContext || !this.stream) return;
       this.source = this.audioContext.createMediaStreamSource(this.stream);
       
       // Using ScriptProcessorNode for simplicity in this environment

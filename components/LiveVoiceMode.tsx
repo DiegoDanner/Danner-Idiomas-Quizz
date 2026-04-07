@@ -24,6 +24,16 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
   const isMutedRef = useRef(isMuted);
 
   useEffect(() => {
+    audioStreamerRef.current = new AudioStreamer((base64Data) => {
+      if (sessionRef.current && !isMutedRef.current) {
+        sessionRef.current.sendRealtimeInput({
+          audio: { data: base64Data, mimeType: 'audio/pcm;rate=16000' }
+        });
+      }
+    });
+  }, []);
+
+  useEffect(() => {
     isMutedRef.current = isMuted;
   }, [isMuted]);
 
@@ -54,14 +64,6 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
     try {
       const ai = new GoogleGenAI({ apiKey });
       
-      audioStreamerRef.current = new AudioStreamer((base64Data) => {
-        if (sessionRef.current && !isMutedRef.current) {
-          sessionRef.current.sendRealtimeInput({
-            audio: { data: base64Data, mimeType: 'audio/pcm;rate=16000' }
-          });
-        }
-      });
-
       const session = await ai.live.connect({
         model: "gemini-3.1-flash-live-preview",
         config: {
@@ -123,6 +125,17 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
     };
   }, [startSession, stopSession, showExplanation]);
 
+  const handleStart = async () => {
+    if (audioStreamerRef.current) {
+      try {
+        await audioStreamerRef.current.init();
+      } catch (e) {
+        console.error("Failed to initialize audio context:", e);
+      }
+    }
+    setShowExplanation(false);
+  };
+
   if (showExplanation) {
     return (
       <motion.div
@@ -146,7 +159,7 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
         </div>
         <div className="flex flex-col w-full gap-3">
           <button
-            onClick={() => setShowExplanation(false)}
+            onClick={handleStart}
             className="w-full py-4 bg-[#6cb2ff] text-white rounded-2xl font-bold hover:bg-[#6cb2ff]/80 transition-all shadow-lg shadow-[#6cb2ff]/20 flex flex-col items-center justify-center"
           >
             <span>Start Speaking</span>
