@@ -30,7 +30,11 @@ export const metadata: Metadata = {
   },
   manifest: '/site.webmanifest',
 };
-
+  export const metadata = {
+    icons: {
+      icon: '/favicon.ico',
+    },
+  }
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
     <html lang="en" className={`${inter.variable} ${plusJakartaSans.variable}`} suppressHydrationWarning translate="no">
