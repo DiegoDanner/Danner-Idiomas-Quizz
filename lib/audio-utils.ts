@@ -11,7 +11,7 @@ export class AudioStreamer {
   private nextStartTime: number = 0;
   private isPlaying: boolean = false;
   private onSpeechEnd: (() => void) | null = null;
-  private speechEndTimeout: NodeJS.Timeout | null = null;
+  private speechEndTimeout: any = null;
 
   constructor(private onAudioData: (base64Data: string) => void) {}
 
