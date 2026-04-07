@@ -31,6 +31,18 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
         });
       }
     });
+
+    let transcriptTimeout: any;
+    audioStreamerRef.current.setSpeechEndCallback(() => {
+      if (transcriptTimeout) clearTimeout(transcriptTimeout);
+      transcriptTimeout = setTimeout(() => {
+        setAiTranscript('');
+      }, 2000);
+    });
+
+    return () => {
+      if (transcriptTimeout) clearTimeout(transcriptTimeout);
+    };
   }, []);
 
   useEffect(() => {
@@ -69,9 +81,9 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
         config: {
           responseModalities: [Modality.AUDIO],
           speechConfig: {
-            voiceConfig: { prebuiltVoiceConfig: { voiceName: "Fenrir" } },
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: "Algenib" } },
           },
-          systemInstruction: "You are Teacher Danner, a friendly and experienced English teacher from Brazil helping students learn English. You explain things simply, give examples, and encourage students. You never say you are an AI. You respond in English or Portuguese depending on the student. If the student writes in English, lightly and gently correct any mistakes before answering their question. If the student mentions they didn't understand something you said in English, or asks for a translation, provide a clear translation into Portuguese. Keep answers short, practical, and easy to understand. Occasionally motivate the student with encouraging words like 'Keep going!', 'You're doing great!', or 'Vamos lá!'.",
+          systemInstruction: "You are Teacher Danner, a friendly and experienced English teacher from Brazil helping students learn English. You explain things simply, give examples, and encourage students. You never say you are an AI. You respond in English or Portuguese depending on the student. If the student writes in English, lightly and gently correct any mistakes before answering their question. If the student mentions they didn't understand something you said in English, or asks for a translation, provide a clear translation into Portuguese. Keep answers short, practical, and easy to understand. Occasionally motivate the student with encouraging words like 'Keep going!', 'You're doing great!', or 'Vamos lá!'. IMPORTANT: You have a deep, masculine, and gravelly voice (masculina roca).",
           inputAudioTranscription: {},
           outputAudioTranscription: {},
         },
@@ -93,6 +105,7 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
 
             if (message.serverContent?.interrupted) {
               console.log("AI Interrupted");
+              setAiTranscript('');
             }
           },
           onerror: (err) => {
@@ -229,16 +242,30 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
         </div>
 
         {/* Transcript Box */}
-        <div className="w-full bg-white/5 border border-white/10 rounded-3xl p-8 min-h-[160px] flex items-center justify-center text-center shadow-inner">
-          {aiTranscript ? (
-            <p className="text-gray-300 text-lg leading-relaxed animate-in fade-in slide-in-from-bottom-2">
-              &quot;{aiTranscript.slice(-150)}&quot;
-            </p>
-          ) : (
-            <p className="text-gray-500 text-lg italic animate-pulse">
-              {isConnected ? "Listening..." : "..."}
-            </p>
-          )}
+        <div className="w-full bg-white/5 border border-white/10 rounded-3xl p-8 min-h-[160px] flex items-center justify-center text-center shadow-inner overflow-hidden">
+          <AnimatePresence mode="wait">
+            {aiTranscript ? (
+              <motion.p
+                key="transcript"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="text-gray-300 text-lg leading-relaxed"
+              >
+                &quot;{aiTranscript.slice(-150).trim()}&quot;
+              </motion.p>
+            ) : (
+              <motion.p
+                key="listening"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-gray-500 text-lg italic animate-pulse"
+              >
+                {isConnected ? "Listening..." : "..."}
+              </motion.p>
+            )}
+          </AnimatePresence>
         </div>
 
         {error && (
