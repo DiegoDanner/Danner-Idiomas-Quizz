@@ -208,11 +208,24 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
 
         <div className="space-y-2">
           <h3 className="text-2xl font-bold text-white">
-            {isConnecting ? "Connecting to Teacher Danner..." : isConnected ? "Talking to Teacher Danner" : "Connection Lost"}
+            {isConnecting ? "Connecting to Teacher Danner..." : isConnected ? "Teacher Danner" : "Connection Lost"}
           </h3>
-          <p className="text-gray-400 text-sm">
-            {isConnected ? "I'm listening! Speak naturally in English or Portuguese." : "Setting up your voice classroom..."}
+          <p className="text-[#6cb2ff] font-medium text-sm">
+            {isConnected ? "Live Voice Mode" : "Setting up your voice classroom..."}
           </p>
+        </div>
+
+        {/* Transcript Box */}
+        <div className="w-full bg-white/5 border border-white/10 rounded-3xl p-8 min-h-[160px] flex items-center justify-center text-center shadow-inner">
+          {aiTranscript ? (
+            <p className="text-gray-300 text-lg leading-relaxed animate-in fade-in slide-in-from-bottom-2">
+              &quot;{aiTranscript.slice(-150)}&quot;
+            </p>
+          ) : (
+            <p className="text-gray-500 text-lg italic animate-pulse">
+              {isConnected ? "Listening..." : "..."}
+            </p>
+          )}
         </div>
 
         {error && (
@@ -238,15 +251,6 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
           >
             <PhoneOff className="w-8 h-8" />
           </button>
-        </div>
-
-        {/* Live Transcript (Optional) */}
-        <div className="h-24 overflow-y-auto text-sm text-gray-500 italic px-4">
-          {aiTranscript && (
-            <p className="animate-in fade-in slide-in-from-bottom-2">
-              &quot;{aiTranscript.slice(-100)}...&quot;
-            </p>
-          )}
         </div>
       </div>
     </motion.div>
