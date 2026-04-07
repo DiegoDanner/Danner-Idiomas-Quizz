@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Mic, MicOff, Volume2, VolumeX, Sparkles, Loader2 } from 'lucide-react';
 import { GoogleGenAI, Modality, LiveServerMessage } from "@google/genai";
+import { motion, AnimatePresence } from 'motion/react';
+import { Mic, MicOff, PhoneOff, Loader2, Volume2, VolumeX, AlertCircle } from 'lucide-react';
+import { AudioStreamer } from '@/lib/audio-utils';
 
 interface LiveVoiceModeProps {
   onClose: () => void;
@@ -11,291 +12,242 @@ interface LiveVoiceModeProps {
 
 export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
   const [isConnected, setIsConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [showExplanation, setShowExplanation] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [transcription, setTranscription] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [transcript, setTranscript] = useState<string>('');
+  const [aiTranscript, setAiTranscript] = useState<string>('');
   
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const audioStreamerRef = useRef<AudioStreamer | null>(null);
   const sessionRef = useRef<any>(null);
-  const audioQueueRef = useRef<Int16Array[]>([]);
-  const isPlayingRef = useRef(false);
-  const nextStartTimeRef = useRef(0);
+  const isMutedRef = useRef(isMuted);
 
-  const cleanup = useCallback(() => {
-    if (processorRef.current) {
-      processorRef.current.disconnect();
-      processorRef.current = null;
-    }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
-    }
+  useEffect(() => {
+    isMutedRef.current = isMuted;
+  }, [isMuted]);
+
+  const stopSession = useCallback(() => {
     if (sessionRef.current) {
-      sessionRef.current.close();
+      try {
+        sessionRef.current.close();
+      } catch (e) {
+        console.error("Error closing session:", e);
+      }
       sessionRef.current = null;
     }
+    audioStreamerRef.current?.stopCapture();
     setIsConnected(false);
-    setIsSpeaking(false);
+    setIsConnecting(false);
   }, []);
 
-  const playNextInQueue = useCallback(async () => {
-    if (audioQueueRef.current.length === 0 || isPlayingRef.current || !audioContextRef.current) {
+  const startSession = useCallback(async () => {
+    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+    if (!apiKey) {
+      setError("Gemini API Key not found. Please configure it in your environment.");
       return;
     }
 
-    isPlayingRef.current = true;
-    const pcmData = audioQueueRef.current.shift()!;
-    
-    const float32Data = new Float32Array(pcmData.length);
-    for (let i = 0; i < pcmData.length; i++) {
-      float32Data[i] = pcmData[i] / 32768.0;
-    }
+    setIsConnecting(true);
+    setError(null);
 
-    const buffer = audioContextRef.current.createBuffer(1, float32Data.length, 24000);
-    buffer.getChannelData(0).set(float32Data);
-
-    const source = audioContextRef.current.createBufferSource();
-    source.buffer = buffer;
-    source.connect(audioContextRef.current.destination);
-
-    const startTime = Math.max(audioContextRef.current.currentTime, nextStartTimeRef.current);
-    source.start(startTime);
-    nextStartTimeRef.current = startTime + buffer.duration;
-
-    source.onended = () => {
-      isPlayingRef.current = false;
-      playNextInQueue();
-    };
-  }, []);
-
-  const connect = useCallback(async () => {
     try {
-      setError(null);
-      
-      // Check for API key
-      if (typeof window !== 'undefined' && (window as any).aistudio) {
-        const hasKey = await (window as any).aistudio.hasSelectedApiKey();
-        if (!hasKey) {
-          await (window as any).aistudio.openSelectKey();
-        }
-      }
-
-      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY?.trim();
-      if (!apiKey) throw new Error("API Key not configured.");
-
       const ai = new GoogleGenAI({ apiKey });
       
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-      streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
-      
+      audioStreamerRef.current = new AudioStreamer((base64Data) => {
+        if (sessionRef.current && !isMutedRef.current) {
+          sessionRef.current.sendRealtimeInput({
+            audio: { data: base64Data, mimeType: 'audio/pcm;rate=16000' }
+          });
+        }
+      });
+
       const session = await ai.live.connect({
         model: "gemini-3.1-flash-live-preview",
         config: {
           responseModalities: [Modality.AUDIO],
           speechConfig: {
-            voiceConfig: { prebuiltVoiceConfig: { voiceName: "Zephyr" } },
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: "Fenrir" } },
           },
           systemInstruction: "You are Teacher Danner, a friendly and experienced English teacher from Brazil helping students learn English. You explain things simply, give examples, and encourage students. You never say you are an AI. You respond in English or Portuguese depending on the student. If the student writes in English, lightly and gently correct any mistakes before answering their question. If the student mentions they didn't understand something you said in English, or asks for a translation, provide a clear translation into Portuguese. Keep answers short, practical, and easy to understand. Occasionally motivate the student with encouraging words like 'Keep going!', 'You're doing great!', or 'Vamos lá!'.",
+          inputAudioTranscription: {},
           outputAudioTranscription: {},
         },
         callbacks: {
           onopen: () => {
             setIsConnected(true);
-            
-            // Start sending audio
-            const source = audioContextRef.current!.createMediaStreamSource(streamRef.current!);
-            processorRef.current = audioContextRef.current!.createScriptProcessor(4096, 1, 1);
-            
-            processorRef.current.onaudioprocess = (e) => {
-              if (isMuted) return;
-              
-              const inputData = e.inputBuffer.getChannelData(0);
-              const pcmData = new Int16Array(inputData.length);
-              for (let i = 0; i < inputData.length; i++) {
-                pcmData[i] = Math.max(-1, Math.min(1, inputData[i])) * 32767;
-              }
-              
-              const base64Data = btoa(String.fromCharCode(...new Uint8Array(pcmData.buffer)));
-              session.sendRealtimeInput({
-                audio: { data: base64Data, mimeType: 'audio/pcm;rate=16000' }
-              });
-            };
-            
-            source.connect(processorRef.current);
-            processorRef.current.connect(audioContextRef.current!.destination);
+            setIsConnecting(false);
+            audioStreamerRef.current?.startCapture();
           },
-          onmessage: async (message: LiveServerMessage) => {
-            // Handle audio output
-            const audioData = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
-            if (audioData) {
-              const binary = atob(audioData);
-              const bytes = new Uint8Array(binary.length);
-              for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-              const pcmData = new Int16Array(bytes.buffer);
-              audioQueueRef.current.push(pcmData);
-              playNextInQueue();
-              
-              // If we were not speaking before, this is a new turn, clear previous transcription
-              if (!isSpeaking) {
-                setTranscription('');
-              }
-              setIsSpeaking(true);
+          onmessage: (message: LiveServerMessage) => {
+            const base64Audio = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
+            if (base64Audio) {
+              audioStreamerRef.current?.playAudioChunk(base64Audio);
             }
 
-            // Handle transcription (Captions)
-            const transcriptionPart = message.serverContent?.outputTranscription?.text;
-            
-            if (transcriptionPart) {
-              setTranscription(prev => (prev + ' ' + transcriptionPart).trim());
+            if (message.serverContent?.modelTurn?.parts?.[0]?.text) {
+              setAiTranscript(prev => prev + ' ' + message.serverContent?.modelTurn?.parts?.[0]?.text);
             }
 
             if (message.serverContent?.interrupted) {
-              audioQueueRef.current = [];
-              isPlayingRef.current = false;
-              setIsSpeaking(false);
-              setTranscription('');
-            }
-
-            if (message.serverContent?.turnComplete) {
-              setIsSpeaking(false);
+              console.log("AI Interrupted");
             }
           },
-          onclose: () => cleanup(),
           onerror: (err) => {
             console.error("Live API Error:", err);
-            setError("Connection lost. Please try again.");
-            cleanup();
+            setError("Connection error. Please try again.");
+            stopSession();
+          },
+          onclose: () => {
+            setIsConnected(false);
+            setIsConnecting(false);
+            stopSession();
           }
         }
       });
 
       sessionRef.current = session;
     } catch (err: any) {
-      console.error("Connection error:", err);
-      setError(err.message || "Failed to connect to Teacher Danner.");
-      cleanup();
+      console.error("Failed to start session:", err);
+      setError(`Failed to connect: ${err.message}`);
+      setIsConnecting(false);
     }
-  }, [cleanup, isMuted, playNextInQueue]);
+  }, [stopSession]);
 
   useEffect(() => {
-    connect();
-    return () => cleanup();
-  }, []);
+    if (!showExplanation) {
+      startSession();
+    }
+    return () => {
+      stopSession();
+    };
+  }, [startSession, stopSession, showExplanation]);
+
+  if (showExplanation) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 20 }}
+        className="absolute inset-0 bg-[#0d1117] z-50 flex flex-col items-center justify-center p-8 text-center"
+      >
+        <div className="w-20 h-20 bg-[#6cb2ff]/20 rounded-3xl flex items-center justify-center mb-6">
+          <Mic className="w-10 h-10 text-[#6cb2ff]" />
+        </div>
+        <h3 className="text-2xl font-bold text-white mb-2">Voice Classroom</h3>
+        <h4 className="text-lg font-medium text-[#6cb2ff] mb-4">Sala de Aula por Voz</h4>
+        <div className="space-y-4 mb-8">
+          <p className="text-gray-400 leading-relaxed">
+            You can speak directly with Teacher Danner! Practice your pronunciation and conversation skills in real-time.
+          </p>
+          <p className="text-gray-500 text-sm leading-relaxed italic">
+            Você pode falar diretamente com o Professor Danner! Pratique sua pronúncia e habilidades de conversação em tempo real.
+          </p>
+        </div>
+        <div className="flex flex-col w-full gap-3">
+          <button
+            onClick={() => setShowExplanation(false)}
+            className="w-full py-4 bg-[#6cb2ff] text-white rounded-2xl font-bold hover:bg-[#6cb2ff]/80 transition-all shadow-lg shadow-[#6cb2ff]/20 flex flex-col items-center justify-center"
+          >
+            <span>Start Speaking</span>
+            <span className="text-xs opacity-80 font-medium">Começar a Falar</span>
+          </button>
+          <button
+            onClick={onClose}
+            className="w-full py-4 bg-white/5 text-gray-400 rounded-2xl font-bold hover:bg-white/10 transition-all flex flex-col items-center justify-center"
+          >
+            <span>Maybe Later</span>
+            <span className="text-xs opacity-60 font-medium">Talvez Depois</span>
+          </button>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9 }}
       className="absolute inset-0 bg-[#0d1117] z-50 flex flex-col items-center justify-center p-6 text-center"
     >
-      <button
-        onClick={onClose}
-        className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white transition-colors"
-      >
-        <X className="w-6 h-6" />
-      </button>
+      <div className="absolute top-4 right-4">
+        <button 
+          onClick={onClose}
+          className="p-2 hover:bg-white/5 rounded-full transition-colors text-gray-400"
+        >
+          <PhoneOff className="w-6 h-6 text-red-500" />
+        </button>
+      </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center w-full max-w-md space-y-8">
-        {/* Avatar & Visualizer */}
-        <div className="relative">
-          <div className={`w-32 h-32 rounded-full border-4 border-[#6cb2ff]/30 overflow-hidden bg-[#161b22] relative z-10 ${isSpeaking ? 'scale-110' : ''} transition-transform duration-300`}>
-            <img
-              src="/teacher-danner.png"
-              alt="Teacher Danner"
-              className="w-full h-full object-cover"
-            />
-          </div>
-          
-          {/* Pulsing Rings */}
-          <AnimatePresence>
-            {isConnected && (
-              <>
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0.5 }}
-                  animate={{ scale: isSpeaking ? 1.5 : 1.2, opacity: 0 }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="absolute inset-0 rounded-full bg-[#6cb2ff]/20 -z-0"
-                />
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0.3 }}
-                  animate={{ scale: isSpeaking ? 1.8 : 1.4, opacity: 0 }}
-                  transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
-                  className="absolute inset-0 rounded-full bg-[#6cb2ff]/10 -z-0"
-                />
-              </>
+      <div className="space-y-8 w-full max-w-sm">
+        {/* Visualizer Placeholder */}
+        <div className="relative w-48 h-48 mx-auto flex items-center justify-center">
+          <motion.div
+            animate={{
+              scale: isConnected ? [1, 1.2, 1] : 1,
+              opacity: isConnected ? [0.3, 0.6, 0.3] : 0.3,
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+            className="absolute inset-0 bg-[#6cb2ff] rounded-full blur-3xl"
+          />
+          <div className="relative w-32 h-32 bg-[#161b22] border-2 border-[#6cb2ff]/50 rounded-full flex items-center justify-center shadow-2xl">
+            {isConnecting ? (
+              <Loader2 className="w-12 h-12 text-[#6cb2ff] animate-spin" />
+            ) : isConnected ? (
+              <Volume2 className="w-12 h-12 text-[#6cb2ff] animate-pulse" />
+            ) : (
+              <MicOff className="w-12 h-12 text-gray-600" />
             )}
-          </AnimatePresence>
+          </div>
         </div>
 
         <div className="space-y-2">
-          <h2 className="text-2xl font-bold text-white">Teacher Danner</h2>
-          <p className="text-[#6cb2ff] font-medium">Live Voice Mode</p>
-        </div>
-
-        {/* Captions Area */}
-        <div className="w-full min-h-[100px] bg-[#161b22] border border-gray-800 rounded-2xl p-4 flex items-center justify-center">
-          <AnimatePresence mode="wait">
-            {transcription ? (
-              <motion.p
-                key={transcription}
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-gray-200 text-lg leading-relaxed italic"
-              >
-                &quot;{transcription}&quot;
-              </motion.p>
-            ) : (
-              <p className="text-gray-500 italic">
-                {isConnected ? "Listening..." : "Connecting..."}
-              </p>
-            )}
-          </AnimatePresence>
+          <h3 className="text-2xl font-bold text-white">
+            {isConnecting ? "Connecting to Teacher Danner..." : isConnected ? "Talking to Teacher Danner" : "Connection Lost"}
+          </h3>
+          <p className="text-gray-400 text-sm">
+            {isConnected ? "I'm listening! Speak naturally in English or Portuguese." : "Setting up your voice classroom..."}
+          </p>
         </div>
 
         {error && (
-          <p className="text-red-400 text-sm bg-red-400/10 px-4 py-2 rounded-lg border border-red-400/20">
-            {error}
-          </p>
+          <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl flex items-center gap-3 text-red-500 text-sm text-left">
+            <AlertCircle className="w-5 h-5 shrink-0" />
+            <p>{error}</p>
+          </div>
         )}
 
-        {/* Controls */}
-        <div className="flex items-center gap-6 pt-4">
+        <div className="flex items-center justify-center gap-6 pt-4">
           <button
             onClick={() => setIsMuted(!isMuted)}
             className={`p-4 rounded-full transition-all ${
-              isMuted ? 'bg-red-500/20 text-red-500 border border-red-500/50' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+              isMuted ? 'bg-red-500/20 text-red-500' : 'bg-gray-800 text-white hover:bg-gray-700'
             }`}
           >
             {isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
           </button>
           
-          <div className="w-16 h-16 bg-[#6cb2ff] rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(108,178,255,0.4)]">
-            {isConnected ? (
-              <Sparkles className="w-8 h-8 text-white animate-pulse" />
-            ) : (
-              <Loader2 className="w-8 h-8 text-white animate-spin" />
-            )}
-          </div>
-
           <button
             onClick={onClose}
-            className="p-4 rounded-full bg-gray-800 text-gray-400 hover:bg-gray-700 transition-all"
+            className="p-6 bg-red-600 text-white rounded-full hover:bg-red-700 transition-all shadow-xl shadow-red-600/20"
           >
-            <X className="w-6 h-6" />
+            <PhoneOff className="w-8 h-8" />
           </button>
         </div>
-      </div>
 
-      <div className="mt-8 text-[10px] text-gray-600 uppercase tracking-[0.2em] font-bold">
-        Powered by Gemini 3.1 Flash Live
+        {/* Live Transcript (Optional) */}
+        <div className="h-24 overflow-y-auto text-sm text-gray-500 italic px-4">
+          {aiTranscript && (
+            <p className="animate-in fade-in slide-in-from-bottom-2">
+              &quot;{aiTranscript.slice(-100)}...&quot;
+            </p>
+          )}
+        </div>
       </div>
     </motion.div>
   );
