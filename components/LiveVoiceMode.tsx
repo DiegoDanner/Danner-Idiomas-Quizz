@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleGenAI, Modality, LiveServerMessage } from "@google/genai";
 import { motion, AnimatePresence } from 'motion/react';
-import { Mic, MicOff, PhoneOff, Loader2, Volume2, VolumeX, AlertCircle } from 'lucide-react';
+import { Mic, MicOff, PhoneOff, Loader2, Volume2, AlertCircle } from 'lucide-react';
 import { AudioStreamer } from '@/lib/audio-utils';
 
 interface LiveVoiceModeProps {
@@ -16,7 +16,6 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
   const [showExplanation, setShowExplanation] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [transcript, setTranscript] = useState<string>('');
   const [aiTranscript, setAiTranscript] = useState<string>('');
   
   const audioStreamerRef = useRef<AudioStreamer | null>(null);
@@ -69,9 +68,9 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
         config: {
           responseModalities: [Modality.AUDIO],
           speechConfig: {
-            voiceConfig: { prebuiltVoiceConfig: { voiceName: "Fenrir" } },
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: "Algenib" } },
           },
-          systemInstruction: "You are Teacher Danner, a friendly and experienced English teacher from Brazil helping students learn English. You explain things simply, give examples, and encourage students. You never say you are an AI. You respond in English or Portuguese depending on the student. If the student writes in English, lightly and gently correct any mistakes before answering their question. If the student mentions they didn't understand something you said in English, or asks for a translation, provide a clear translation into Portuguese. Keep answers short, practical, and easy to understand. Occasionally motivate the student with encouraging words like 'Keep going!', 'You're doing great!', or 'Vamos lá!'.",
+          systemInstruction: "You are Teacher Danner, a friendly and experienced English teacher from Brazil helping students learn English. You have a deep, slightly hoarse and gravelly male voice. You explain things simply, give examples, and encourage students. You never say you are an AI. You respond in English or Portuguese depending on the student. If the student writes in English, lightly and gently correct any mistakes before answering their question. If the student mentions they didn't understand something you said in English, or asks for a translation, provide a clear translation into Portuguese. Keep answers short, practical, and easy to understand. Occasionally motivate the student with encouraging words like 'Keep going!', 'You're doing great!', or 'Vamos lá!'.",
           inputAudioTranscription: {},
           outputAudioTranscription: {},
         },
@@ -80,6 +79,9 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
             setIsConnected(true);
             setIsConnecting(false);
             audioStreamerRef.current?.startCapture();
+            audioStreamerRef.current?.setSpeechEndCallback(() => {
+              setAiTranscript('');
+            });
           },
           onmessage: (message: LiveServerMessage) => {
             const base64Audio = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
@@ -87,11 +89,13 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
               audioStreamerRef.current?.playAudioChunk(base64Audio);
             }
 
-            if (message.serverContent?.modelTurn?.parts?.[0]?.text) {
-              setAiTranscript(prev => prev + ' ' + message.serverContent?.modelTurn?.parts?.[0]?.text);
+            const textPart = message.serverContent?.modelTurn?.parts?.find(p => p.text);
+            if (textPart?.text) {
+              setAiTranscript(prev => prev + textPart.text);
             }
 
             if (message.serverContent?.interrupted) {
+              setAiTranscript('');
               console.log("AI Interrupted");
             }
           },
@@ -229,16 +233,30 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
         </div>
 
         {/* Transcript Box */}
-        <div className="w-full bg-white/5 border border-white/10 rounded-3xl p-8 min-h-[160px] flex items-center justify-center text-center shadow-inner">
-          {aiTranscript ? (
-            <p className="text-gray-300 text-lg leading-relaxed animate-in fade-in slide-in-from-bottom-2">
-              &quot;{aiTranscript.slice(-150)}&quot;
-            </p>
-          ) : (
-            <p className="text-gray-500 text-lg italic animate-pulse">
-              {isConnected ? "Listening..." : "..."}
-            </p>
-          )}
+        <div className="w-full bg-white/5 border border-white/10 rounded-3xl p-8 min-h-[160px] flex items-center justify-center text-center shadow-inner overflow-hidden">
+          <AnimatePresence mode="wait">
+            {aiTranscript ? (
+              <motion.p
+                key="transcript"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="text-gray-200 text-xl font-medium leading-relaxed"
+              >
+                &quot;{aiTranscript.trim()}&quot;
+              </motion.p>
+            ) : (
+              <motion.p
+                key="listening"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-gray-500 text-lg italic animate-pulse"
+              >
+                {isConnected ? "Listening..." : "..."}
+              </motion.p>
+            )}
+          </AnimatePresence>
         </div>
 
         {error && (
