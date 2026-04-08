@@ -30,18 +30,14 @@ export const metadata: Metadata = {
     ],
   },
   manifest: '/site.webmanifest',
+  other: {
+    google: 'notranslate',
+  },
 };
-  export const metadata = {
-    icons: {
-      icon: '/favicon.ico',
-    },
-  }
+
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
     <html lang="en" className={`${inter.variable} ${plusJakartaSans.variable}`} suppressHydrationWarning translate="no">
-      <head>
-        <meta name="google" content="notranslate" />
-      </head>
       <body className="bg-white dark:bg-[#080e1a] text-[#1a1a1a] dark:text-[#e5ebfc] selection:bg-[#6cb2ff]/30 min-h-screen font-sans transition-colors duration-300 notranslate">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <AuthProvider>
