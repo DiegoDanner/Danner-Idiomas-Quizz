@@ -21,8 +21,9 @@ export const metadata: Metadata = {
   description: 'Interactive knowledge quizzes to accelerate your fluency through immersive practice.',
   icons: {
     icon: [
-      { url: '/favicon.png', sizes: '48x48', type: 'image/png' },
+      { url: '/favicon.ico', sizes: 'any' },
       { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
     ],
     apple: [
       { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
@@ -40,19 +41,6 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
     <html lang="en" className={`${inter.variable} ${plusJakartaSans.variable}`} suppressHydrationWarning translate="no">
       <head>
         <meta name="google" content="notranslate" />
-        <link rel="icon" href="/favicon.png" sizes="48x48" />
-        <link rel="icon" href="/favicon-32x32.png" sizes="32x32" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="manifest" href="/site.webmanifest" />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              fetch('/teacher-danner.png')
-                .then(res => console.log('Teacher Danner Avatar check:', res.ok ? 'OK' : 'FAILED', res.status))
-                .catch(err => console.error('Teacher Danner Avatar check error:', err));
-            `,
-          }}
-        />
       </head>
       <body className="bg-white dark:bg-[#080e1a] text-[#1a1a1a] dark:text-[#e5ebfc] selection:bg-[#6cb2ff]/30 min-h-screen font-sans transition-colors duration-300 notranslate">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
