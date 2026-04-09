@@ -26,9 +26,28 @@ export default function StroopTest() {
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(30);
   const [totalQuestions, setTotalQuestions] = useState(0);
+  const [isDark, setIsDark] = useState(true);
+  const [isListening, setIsListening] = useState(false);
   const { performAction, showAuthModal, setShowAuthModal } = useAuthAction();
   const { user } = useAuth();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const recognitionRef = useRef<any>(null);
+
+  // Use refs for game state to avoid stale closures in SpeechRecognition callbacks
+  const stateRef = useRef({ isDark, currentColor, currentWord, step, totalQuestions });
+
+  useEffect(() => {
+    stateRef.current = { isDark, currentColor, currentWord, step, totalQuestions };
+  }, [isDark, currentColor, currentWord, step, totalQuestions]);
+
+  const stopListening = useCallback(() => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch {}
+      setIsListening(false);
+    }
+  }, []);
 
   const generateNewPair = useCallback(() => {
     const wordIndex = Math.floor(Math.random() * COLORS.length);
@@ -41,25 +60,85 @@ export default function StroopTest() {
 
     setCurrentWord(COLORS[wordIndex]);
     setCurrentColor(COLORS[colorIndex]);
+    setIsDark(Math.random() > 0.5);
   }, []);
 
   const startGame = () => {
     performAction(() => {
       setScore(0);
-      setTimeLeft(30);
+      setTimeLeft(60); // Give more time for 20 voice rounds
       setTotalQuestions(0);
       generateNewPair();
       setStep('game');
+      startListening();
     });
   };
 
-  const handleAnswer = (colorName: string) => {
-    setTotalQuestions(prev => prev + 1);
-    if (colorName === currentColor.name) {
-      setScore(prev => prev + 1);
+  const handleAnswer = useCallback((input: string) => {
+    const { isDark: dark, currentColor: color, currentWord: word } = stateRef.current;
+
+    setTotalQuestions(prev => {
+      const nextCount = prev + 1;
+
+      const expected = dark ? color.name : word.name;
+      if (input.toLowerCase() === expected.toLowerCase()) {
+        setScore(s => s + 1);
+      }
+
+      if (nextCount >= 20) {
+        setStep('results');
+        stopListening();
+      } else {
+        generateNewPair();
+      }
+      return nextCount;
+    });
+  }, [generateNewPair, stopListening]);
+
+  const startListening = useCallback(() => {
+    if (typeof window === 'undefined') return;
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    if (!recognitionRef.current) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[event.results.length - 1][0].transcript;
+        const normalized = transcript.trim().toLowerCase();
+
+        // Find if normalized input matches any color name
+        const matchedColor = COLORS.find(c => normalized.includes(c.name.toLowerCase()));
+        if (matchedColor) {
+          handleAnswer(matchedColor.name);
+        }
+      };
+
+      recognition.onend = () => {
+        const { step: currentStep, totalQuestions: currentCount } = stateRef.current;
+        if (currentStep === 'game' && currentCount < 20) {
+          try {
+            recognition.start();
+          } catch {}
+        } else {
+          setIsListening(false);
+        }
+      };
+
+      recognitionRef.current = recognition;
     }
-    generateNewPair();
-  };
+
+    try {
+      recognitionRef.current.start();
+      setIsListening(true);
+    } catch (error) {
+      console.error("Speech recognition error:", error);
+    }
+  }, [handleAnswer]);
 
   useEffect(() => {
     if (step === 'game' && timeLeft > 0) {
@@ -118,22 +197,27 @@ export default function StroopTest() {
                 <ul className="space-y-4 text-gray-600 dark:text-[#a5abbb]">
                   <li className="flex gap-3 italic">
                     <span className="font-bold text-blue-500">1.</span>
-                    Look at the word displayed.
+                    Wait for the round to load and look at the background.
                   </li>
                   <li className="flex gap-3 font-bold text-lg">
                     <span className="font-bold text-blue-500">2.</span>
-                    Identify the COLOR of the text, NOT what the word says.
+                    If background is <span className="text-gray-900 dark:text-white underline">DARK</span>: Say the <span className="text-blue-500">COLOR</span> of the text.
+                  </li>
+                  <li className="flex gap-3 font-bold text-lg">
+                    <span className="font-bold text-blue-500">3.</span>
+                    If background is <span className="text-gray-400 underline">WHITE</span>: Say the <span className="text-blue-500">WORD</span> itself.
                   </li>
                   <li className="flex gap-3">
-                    <span className="font-bold text-blue-500">3.</span>
-                    Click the button corresponding to that color as fast as you can!
+                    <span className="font-bold text-blue-500">4.</span>
+                    Speak clearly or click the buttons. 20 rounds total!
                   </li>
                 </ul>
                 <div className="mt-8 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl flex items-center gap-3">
                   <div className="text-2xl">💡</div>
-                  <p className="text-sm text-yellow-600 dark:text-yellow-400 font-medium">
-                    Example: If you see the word <span className="text-red-500 font-black">BLUE</span> written in red, you should click <span className="font-bold underline">Red</span>.
-                  </p>
+                  <div className="text-sm text-yellow-600 dark:text-yellow-400 font-medium">
+                    <p>Dark background + <span className="text-red-500 font-black">BLUE</span> → Say &quot;Red&quot;</p>
+                    <p>White background + <span className="text-red-500 font-black">BLUE</span> → Say &quot;Blue&quot;</p>
+                  </div>
                 </div>
               </div>
               <motion.button
@@ -162,6 +246,10 @@ export default function StroopTest() {
                     <span className="text-xs uppercase tracking-wider text-gray-400 font-bold mb-1">Score</span>
                     <span className="text-3xl font-black text-blue-500">{score}</span>
                   </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs uppercase tracking-wider text-gray-400 font-bold mb-1">Round</span>
+                    <span className="text-3xl font-black text-blue-500">{totalQuestions + 1} / 20</span>
+                  </div>
                 </div>
                 <div className="flex flex-col items-end">
                   <span className="text-xs uppercase tracking-wider text-gray-400 font-bold mb-1">Time Left</span>
@@ -176,23 +264,46 @@ export default function StroopTest() {
               <div className="h-2 bg-gray-100 dark:bg-[#121a28] rounded-full overflow-hidden">
                 <motion.div
                   initial={{ width: "100%" }}
-                  animate={{ width: `${(timeLeft / 30) * 100}%` }}
+                  animate={{ width: `${(timeLeft / 60) * 100}%` }}
                   transition={{ duration: 1, ease: "linear" }}
                   className={`h-full ${timeLeft <= 5 ? 'bg-red-500' : 'bg-blue-500'}`}
                 />
               </div>
 
               {/* Game Area */}
-              <div className="flex flex-col items-center justify-center py-12">
+              <motion.div
+                animate={{ backgroundColor: isDark ? '#080e1a' : '#ffffff' }}
+                className="flex flex-col items-center justify-center py-16 rounded-3xl border border-gray-200 dark:border-[#424855]/10 shadow-inner relative overflow-hidden"
+              >
+                <AnimatePresence mode="wait">
+                  {isListening && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute top-4 right-6 flex items-center gap-2"
+                    >
+                      <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                      <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Listening</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <div className="absolute top-4 left-6">
+                   <span className="text-xs font-bold uppercase tracking-widest text-gray-400">
+                     {isDark ? 'Say the COLOR' : 'Say the WORD'}
+                   </span>
+                </div>
+
                 <motion.h2
-                  key={currentWord.name + currentColor.name}
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
+                  key={currentWord.name + currentColor.name + isDark}
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
                   className={`text-7xl md:text-9xl font-black uppercase tracking-tighter ${currentColor.class} drop-shadow-sm select-none`}
                 >
                   {currentWord.name}
                 </motion.h2>
-              </div>
+              </motion.div>
 
               {/* Controls */}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
