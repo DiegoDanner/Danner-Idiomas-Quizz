@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Trophy, RotateCcw, Zap, Mic, Check } from 'lucide-react';
+import { ArrowLeft, Trophy, RotateCcw, Zap, Mic, Check, X } from 'lucide-react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { useAuthAction } from '@/hooks/useAuthAction';
@@ -28,7 +28,7 @@ export default function StroopTest() {
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [isDark, setIsDark] = useState(true);
   const [isListening, setIsListening] = useState(false);
-  const [feedback, setFeedback] = useState<'correct' | null>(null);
+  const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [lastTranscript, setLastTranscript] = useState('');
   const [streak, setStreak] = useState(0);
   const { performAction, showAuthModal, setShowAuthModal } = useAuthAction();
@@ -92,7 +92,6 @@ export default function StroopTest() {
       setStreak(s => s + 1);
       setFeedback('correct');
 
-      // Delay before next round to show feedback
       setTimeout(() => {
         setFeedback(null);
         setTotalQuestions(prev => {
@@ -105,21 +104,24 @@ export default function StroopTest() {
           }
           return nextCount;
         });
-      }, 1000);
+      }, 1500);
     } else {
       setStreak(0);
-      // Optional: show incorrect feedback? User didn't ask for it specifically
-      // but let's just move on to next round to keep pace
-      setTotalQuestions(prev => {
-        const nextCount = prev + 1;
-        if (nextCount >= 20) {
-          setStep('results');
-          stopListening();
-        } else {
-          generateNewPair();
-        }
-        return nextCount;
-      });
+      setFeedback('incorrect');
+
+      setTimeout(() => {
+        setFeedback(null);
+        setTotalQuestions(prev => {
+          const nextCount = prev + 1;
+          if (nextCount >= 20) {
+            setStep('results');
+            stopListening();
+          } else {
+            generateNewPair();
+          }
+          return nextCount;
+        });
+      }, 2000);
     }
   }, [generateNewPair, stopListening, feedback]);
 
@@ -292,6 +294,8 @@ export default function StroopTest() {
                 animate={{
                   background: feedback === 'correct'
                     ? 'linear-gradient(135deg, #065f46 0%, #064e3b 100%)'
+                    : feedback === 'incorrect'
+                    ? 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)'
                     : (isDark ? 'linear-gradient(135deg, #064e3b 0%, #065f46 100%)' : 'linear-gradient(135deg, #ffffff 0%, #f9fafb 100%)')
                 }}
                 className="flex flex-col items-center justify-center py-24 rounded-[2.5rem] border border-gray-200 dark:border-[#424855]/10 shadow-2xl relative overflow-hidden min-h-[420px]"
@@ -299,39 +303,55 @@ export default function StroopTest() {
                 <AnimatePresence mode="wait">
                   {feedback === 'correct' ? (
                     <motion.div
-                      key="feedback"
+                      key="correct-feedback"
                       initial={{ scale: 0.8, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       exit={{ scale: 1.1, opacity: 0 }}
-                      className="flex flex-col items-center gap-4 text-white"
+                      className="flex flex-col items-center gap-4 text-white z-20"
                     >
                       <div className="w-24 h-24 rounded-full bg-emerald-500/20 border-4 border-emerald-500 flex items-center justify-center shadow-xl mb-4">
                         <Check className="w-12 h-12 text-emerald-500 stroke-[4px]" />
                       </div>
                       <h3 className="text-4xl font-black uppercase tracking-widest text-emerald-500">Correct!</h3>
                     </motion.div>
-                  ) : (
+                  ) : feedback === 'incorrect' ? (
                     <motion.div
-                      key="word-display"
-                      initial={{ y: 20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      exit={{ y: -20, opacity: 0 }}
-                      className="flex flex-col items-center"
+                      key="incorrect-feedback"
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 1.1, opacity: 0 }}
+                      className="flex flex-col items-center gap-4 z-20"
                     >
-                      <div className="absolute top-6 left-8">
-                         <span className={`text-xs font-bold uppercase tracking-widest ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                           {isDark ? 'Say the COLOR' : 'Say the WORD'}
-                         </span>
+                      <div className="w-24 h-24 rounded-full bg-red-500 flex items-center justify-center shadow-xl mb-4">
+                        <X className="w-12 h-12 text-white stroke-[4px]" />
                       </div>
-
-                      <h2
-                        className={`text-7xl md:text-9xl font-black uppercase tracking-tighter ${currentColor.class} drop-shadow-sm select-none ${!isDark && currentColor.name === 'Yellow' ? 'text-amber-600' : ''}`}
-                      >
-                        {currentWord.name}
-                      </h2>
+                      <h3 className="text-4xl font-black uppercase tracking-tight text-red-500 text-center">
+                        Oops! It was <span className="uppercase">{isDark ? currentColor.name : currentWord.name}</span>
+                      </h3>
                     </motion.div>
-                  )}
+                  ) : null}
                 </AnimatePresence>
+
+                <motion.div
+                  key="word-display"
+                  animate={{
+                    filter: feedback ? 'blur(12px)' : 'blur(0px)',
+                    opacity: feedback ? 0.3 : 1
+                  }}
+                  className="flex flex-col items-center"
+                >
+                  <div className="absolute top-6 left-8">
+                     <span className={`text-xs font-bold uppercase tracking-widest ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                       {isDark ? 'Say the COLOR' : 'Say the WORD'}
+                     </span>
+                  </div>
+
+                  <h2
+                    className={`text-7xl md:text-9xl font-black uppercase tracking-tighter ${currentColor.class} drop-shadow-sm select-none ${!isDark && currentColor.name === 'Yellow' ? 'text-amber-600' : ''}`}
+                  >
+                    {currentWord.name}
+                  </h2>
+                </motion.div>
               </motion.div>
 
               {/* Voice Interaction Status */}
