@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Timer, Trophy, RotateCcw, Zap } from 'lucide-react';
+import { ArrowLeft, Trophy, RotateCcw, Zap, Mic, Check } from 'lucide-react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { useAuthAction } from '@/hooks/useAuthAction';
@@ -28,6 +28,9 @@ export default function StroopTest() {
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [isDark, setIsDark] = useState(true);
   const [isListening, setIsListening] = useState(false);
+  const [feedback, setFeedback] = useState<'correct' | null>(null);
+  const [lastTranscript, setLastTranscript] = useState('');
+  const [streak, setStreak] = useState(0);
   const { performAction, showAuthModal, setShowAuthModal } = useAuthAction();
   const { user } = useAuth();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -37,8 +40,8 @@ export default function StroopTest() {
   const stateRef = useRef({ isDark, currentColor, currentWord, step, totalQuestions });
 
   useEffect(() => {
-    stateRef.current = { isDark, currentColor, currentWord, step, totalQuestions };
-  }, [isDark, currentColor, currentWord, step, totalQuestions]);
+    stateRef.current = { isDark, currentColor, currentWord, step, totalQuestions, streak };
+  }, [isDark, currentColor, currentWord, step, totalQuestions, streak]);
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current) {
@@ -66,8 +69,11 @@ export default function StroopTest() {
   const startGame = () => {
     performAction(() => {
       setScore(0);
-      setTimeLeft(60); // Give more time for 20 voice rounds
+      setStreak(0);
+      setTimeLeft(120); // More time for voice
       setTotalQuestions(0);
+      setLastTranscript('');
+      setFeedback(null);
       generateNewPair();
       setStep('game');
       startListening();
@@ -75,25 +81,47 @@ export default function StroopTest() {
   };
 
   const handleAnswer = useCallback((input: string) => {
-    const { isDark: dark, currentColor: color, currentWord: word } = stateRef.current;
+    const { isDark: dark, currentColor: color, currentWord: word, totalQuestions: count } = stateRef.current;
+    if (count >= 20 || feedback) return;
 
-    setTotalQuestions(prev => {
-      const nextCount = prev + 1;
+    const expected = dark ? color.name : word.name;
+    const isCorrect = input.toLowerCase() === expected.toLowerCase();
 
-      const expected = dark ? color.name : word.name;
-      if (input.toLowerCase() === expected.toLowerCase()) {
-        setScore(s => s + 1);
-      }
+    if (isCorrect) {
+      setScore(s => s + 1);
+      setStreak(s => s + 1);
+      setFeedback('correct');
 
-      if (nextCount >= 20) {
-        setStep('results');
-        stopListening();
-      } else {
-        generateNewPair();
-      }
-      return nextCount;
-    });
-  }, [generateNewPair, stopListening]);
+      // Delay before next round to show feedback
+      setTimeout(() => {
+        setFeedback(null);
+        setTotalQuestions(prev => {
+          const nextCount = prev + 1;
+          if (nextCount >= 20) {
+            setStep('results');
+            stopListening();
+          } else {
+            generateNewPair();
+          }
+          return nextCount;
+        });
+      }, 1000);
+    } else {
+      setStreak(0);
+      // Optional: show incorrect feedback? User didn't ask for it specifically
+      // but let's just move on to next round to keep pace
+      setTotalQuestions(prev => {
+        const nextCount = prev + 1;
+        if (nextCount >= 20) {
+          setStep('results');
+          stopListening();
+        } else {
+          generateNewPair();
+        }
+        return nextCount;
+      });
+    }
+  }, [generateNewPair, stopListening, feedback]);
 
   const startListening = useCallback(() => {
     if (typeof window === 'undefined') return;
@@ -110,6 +138,7 @@ export default function StroopTest() {
       recognition.onresult = (event: any) => {
         const transcript = event.results[event.results.length - 1][0].transcript;
         const normalized = transcript.trim().toLowerCase();
+        setLastTranscript(normalized);
 
         // Find if normalized input matches any color name
         const matchedColor = COLORS.find(c => normalized.includes(c.name.toLowerCase()));
@@ -241,85 +270,107 @@ export default function StroopTest() {
             >
               {/* Stats Bar */}
               <div className="flex justify-between items-center bg-gray-50 dark:bg-[#121a28] p-6 rounded-2xl border border-gray-200 dark:border-[#424855]/10 shadow-sm">
-                <div className="flex gap-8">
-                  <div className="flex flex-col">
-                    <span className="text-xs uppercase tracking-wider text-gray-400 font-bold mb-1">Score</span>
-                    <span className="text-3xl font-black text-blue-500">{score}</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs uppercase tracking-wider text-gray-400 font-bold mb-1">Round</span>
-                    <span className="text-3xl font-black text-blue-500">{totalQuestions + 1} / 20</span>
-                  </div>
+                <div className="flex flex-col items-start">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-gray-400 font-black mb-1">PROGRESS</span>
+                  <span className="text-2xl font-black text-gray-900 dark:text-[#e5ebfc]">{totalQuestions + 1} / 20</span>
                 </div>
-                <div className="flex flex-col items-end">
-                  <span className="text-xs uppercase tracking-wider text-gray-400 font-bold mb-1">Time Left</span>
-                  <div className={`flex items-center gap-2 text-3xl font-black ${timeLeft <= 5 ? 'text-red-500 animate-pulse' : 'text-gray-900 dark:text-[#e5ebfc]'}`}>
-                    <Timer className="w-6 h-6" />
-                    {timeLeft}s
-                  </div>
-                </div>
-              </div>
 
-              {/* Progress Bar */}
-              <div className="h-2 bg-gray-100 dark:bg-[#121a28] rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: "100%" }}
-                  animate={{ width: `${(timeLeft / 60) * 100}%` }}
-                  transition={{ duration: 1, ease: "linear" }}
-                  className={`h-full ${timeLeft <= 5 ? 'bg-red-500' : 'bg-blue-500'}`}
-                />
+                <div className="flex items-center justify-center">
+                  <div className="w-14 h-14 rounded-full border-4 border-blue-500/30 flex items-center justify-center bg-blue-500/10 shadow-lg shadow-blue-500/10">
+                    <span className="text-2xl font-black text-blue-500">{streak}</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-end">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-gray-400 font-black mb-1">SCORE</span>
+                  <span className="text-2xl font-black text-emerald-500">{score}</span>
+                </div>
               </div>
 
               {/* Game Area */}
               <motion.div
-                animate={{ backgroundColor: isDark ? '#080e1a' : '#ffffff' }}
-                className="flex flex-col items-center justify-center py-16 rounded-3xl border border-gray-200 dark:border-[#424855]/10 shadow-inner relative overflow-hidden"
+                animate={{
+                  background: feedback === 'correct'
+                    ? 'linear-gradient(135deg, #065f46 0%, #064e3b 100%)'
+                    : (isDark ? 'linear-gradient(135deg, #064e3b 0%, #065f46 100%)' : 'linear-gradient(135deg, #ffffff 0%, #f9fafb 100%)')
+                }}
+                className="flex flex-col items-center justify-center py-24 rounded-[2.5rem] border border-gray-200 dark:border-[#424855]/10 shadow-2xl relative overflow-hidden min-h-[420px]"
               >
                 <AnimatePresence mode="wait">
-                  {isListening && (
+                  {feedback === 'correct' ? (
                     <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="absolute top-4 right-6 flex items-center gap-2"
+                      key="feedback"
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 1.1, opacity: 0 }}
+                      className="flex flex-col items-center gap-4 text-white"
                     >
-                      <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                      <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Listening</span>
+                      <div className="w-24 h-24 rounded-full bg-emerald-500/20 border-4 border-emerald-500 flex items-center justify-center shadow-xl mb-4">
+                        <Check className="w-12 h-12 text-emerald-500 stroke-[4px]" />
+                      </div>
+                      <h3 className="text-4xl font-black uppercase tracking-widest text-emerald-500">Correct!</h3>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="word-display"
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: -20, opacity: 0 }}
+                      className="flex flex-col items-center"
+                    >
+                      <div className="absolute top-6 left-8">
+                         <span className={`text-xs font-bold uppercase tracking-widest ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                           {isDark ? 'Say the COLOR' : 'Say the WORD'}
+                         </span>
+                      </div>
+
+                      <h2
+                        className={`text-7xl md:text-9xl font-black uppercase tracking-tighter ${currentColor.class} drop-shadow-sm select-none ${!isDark && currentColor.name === 'Yellow' ? 'text-amber-600' : ''}`}
+                      >
+                        {currentWord.name}
+                      </h2>
                     </motion.div>
                   )}
                 </AnimatePresence>
-
-                <div className="absolute top-4 left-6">
-                   <span className="text-xs font-bold uppercase tracking-widest text-gray-400">
-                     {isDark ? 'Say the COLOR' : 'Say the WORD'}
-                   </span>
-                </div>
-
-                <motion.h2
-                  key={currentWord.name + currentColor.name + isDark}
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  className={`text-7xl md:text-9xl font-black uppercase tracking-tighter ${currentColor.class} drop-shadow-sm select-none`}
-                >
-                  {currentWord.name}
-                </motion.h2>
               </motion.div>
 
-              {/* Controls */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {COLORS.map((color) => (
-                  <motion.button
-                    key={color.name}
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => handleAnswer(color.name)}
-                    className="bg-gray-50 dark:bg-[#121a28] border-2 border-gray-200 dark:border-[#424855]/10 p-6 rounded-2xl font-bold text-xl text-gray-900 dark:text-[#e5ebfc] hover:bg-white dark:hover:bg-[#1d2636] transition-all flex items-center justify-center gap-3 group"
-                  >
-                    <div className={`w-4 h-4 rounded-full ${color.bg} group-hover:scale-125 transition-transform`} />
-                    {color.name}
-                  </motion.button>
-                ))}
+              {/* Voice Interaction Status */}
+              <div className="flex flex-col items-center gap-8">
+                <div className="bg-gray-50 dark:bg-[#121a28] px-10 py-5 rounded-full border border-gray-200 dark:border-[#424855]/10 shadow-lg flex items-center gap-5 min-w-[340px] justify-between group hover:border-blue-500/30 transition-colors">
+                  <span className="text-gray-700 dark:text-[#e5ebfc] font-black tracking-wide uppercase text-sm">
+                    {isListening ? (isDark ? 'Listening for color...' : 'Listening for word...') : 'Voice Active'}
+                  </span>
+
+                  <div className="flex items-center gap-3">
+                    {isListening && (
+                      <motion.div
+                        initial={{ scale: 0.8 }}
+                        animate={{ scale: [0.8, 1.2, 0.8] }}
+                        transition={{ repeat: Infinity, duration: 1.5 }}
+                        className="w-2.5 h-2.5 bg-red-500 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.5)]"
+                      />
+                    )}
+                    <Mic className={`w-6 h-6 ${isListening ? 'text-blue-500' : 'text-gray-400'}`} />
+                  </div>
+                </div>
+
+                <div className="h-10">
+                  <AnimatePresence mode="wait">
+                    {lastTranscript && (
+                      <motion.p
+                        key={lastTranscript}
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        className="text-3xl font-bold text-gray-400/80 tracking-tight"
+                      >
+                        &quot;{lastTranscript}&quot;
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
+
             </motion.div>
           )}
 
