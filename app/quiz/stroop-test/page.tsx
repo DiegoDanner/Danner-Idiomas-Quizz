@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Trophy, RotateCcw, Zap, Mic, Check, X } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { useAuthAction } from '@/hooks/useAuthAction';
@@ -194,12 +195,21 @@ export default function StroopTest() {
   }, [step]);
 
   useEffect(() => {
-    if (step === 'results' && user) {
-      saveQuizProgress({
-        quiz_id: 'stroop-test',
-        score: score,
-        total_questions: totalQuestions,
+    if (step === 'results') {
+      confetti({
+        particleCount: 150,
+        spread: 160,
+        origin: { y: 0 },
+        colors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
       });
+
+      if (user) {
+        saveQuizProgress({
+          quiz_id: 'stroop-test',
+          score: score,
+          total_questions: totalQuestions,
+        });
+      }
     }
   }, [step, user, score, totalQuestions]);
 
