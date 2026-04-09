@@ -110,6 +110,16 @@ const QUIZZES = [
     isHighlight: true,
     href: '/quiz/daily-blitz',
   },
+  {
+    title: 'Stroop Test Challenge',
+    description: 'Test your cognitive speed! Identify the color of the text, not the word itself. High-speed brain training.',
+    icon: Zap,
+    iconColor: 'text-blue-500',
+    iconBg: 'bg-blue-500/10',
+    actionText: 'Start Test',
+    actionColor: 'text-blue-500',
+    href: '/quiz/stroop-test',
+  },
 ];
 
 
