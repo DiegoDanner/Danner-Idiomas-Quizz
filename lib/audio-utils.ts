@@ -12,10 +12,10 @@ export class AudioStreamer {
   private isPlaying: boolean = false;
   private onSpeechEnd: (() => void) | null = null;
   private speechEndTimeout: any = null;
-  private onAudioData: (arg: string) => void;
+  private onAudioData: (_arg: string) => void;
 
-  constructor(onAudioData: (arg: string) => void) {
-    this.onAudioData = (data: string) => onAudioData(data);
+  constructor(onAudioData: (_arg: string) => void) {
+    this.onAudioData = onAudioData;
   }
 
   setSpeechEndCallback(callback: () => void) {

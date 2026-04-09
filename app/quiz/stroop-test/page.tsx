@@ -19,6 +19,8 @@ const COLORS = [
   { name: 'Purple', class: 'text-purple-500', bg: 'bg-purple-500' },
 ];
 
+const TOTAL_ROUNDS = 20;
+
 export default function StroopTest() {
   const [step, setStep] = useState<'start' | 'game' | 'results'>('start');
   const [currentWord, setCurrentWord] = useState(COLORS[0]);
@@ -84,7 +86,7 @@ export default function StroopTest() {
   const handleAnswer = useCallback((input: string) => {
     if (isValidatingRef.current) return;
     const { isDark: dark, currentColor: color, currentWord: word, totalQuestions: count } = stateRef.current;
-    if (count >= 20 || feedback) return;
+    if (count >= TOTAL_ROUNDS || feedback) return;
 
     const expected = dark ? color.name : word.name;
     const isCorrect = input.toLowerCase() === expected.toLowerCase();
@@ -100,7 +102,7 @@ export default function StroopTest() {
         setFeedback(null);
         setTotalQuestions(prev => {
           const nextCount = prev + 1;
-          if (nextCount >= 20) {
+          if (nextCount >= TOTAL_ROUNDS) {
             setStep('results');
             stopListening();
           } else {
@@ -118,7 +120,7 @@ export default function StroopTest() {
         setFeedback(null);
         setTotalQuestions(prev => {
           const nextCount = prev + 1;
-          if (nextCount >= 20) {
+          if (nextCount >= TOTAL_ROUNDS) {
             setStep('results');
             stopListening();
           } else {
@@ -157,7 +159,7 @@ export default function StroopTest() {
 
       recognition.onend = () => {
         const { step: currentStep, totalQuestions: currentCount } = stateRef.current;
-        if (currentStep === 'game' && currentCount < 20) {
+        if (currentStep === 'game' && currentCount < TOTAL_ROUNDS) {
           try {
             recognition.start();
           } catch {}
@@ -208,10 +210,10 @@ export default function StroopTest() {
   }, [step, user, score, totalQuestions]);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#080e1a] transition-colors duration-300">
+    <div className="h-screen bg-white dark:bg-[#080e1a] transition-colors duration-300 flex flex-col overflow-hidden">
       <Navbar />
 
-      <main className="pt-28 pb-20 px-6 max-w-4xl mx-auto">
+      <main className="flex-1 flex flex-col pt-24 pb-4 px-4 md:px-6 max-w-4xl mx-auto w-full min-h-0">
         <AnimatePresence mode="wait">
           {step === 'start' && (
             <motion.div
@@ -246,7 +248,7 @@ export default function StroopTest() {
                   </li>
                   <li className="flex gap-3 text-sm sm:text-base break-words">
                     <span className="font-bold text-blue-500 shrink-0">4.</span>
-                    <span>Speak clearly or click the buttons. 20 rounds total!</span>
+                    <span>Speak clearly or click the buttons. {TOTAL_ROUNDS} rounds total!</span>
                   </li>
                 </ul>
                 <div className="mt-8 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl flex items-center gap-3">
@@ -274,13 +276,13 @@ export default function StroopTest() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="space-y-12"
+              className="flex-1 flex flex-col min-h-0 space-y-4"
             >
               {/* Stats Bar */}
-              <div className="flex justify-between items-center bg-gray-50 dark:bg-[#121a28] p-6 rounded-2xl border border-gray-200 dark:border-[#424855]/10 shadow-sm">
+              <div className="flex justify-between items-center bg-gray-50 dark:bg-[#121a28] p-4 md:p-6 rounded-2xl border border-gray-200 dark:border-[#424855]/10 shadow-sm">
                 <div className="flex flex-col items-start">
                   <span className="text-[10px] uppercase tracking-[0.2em] text-gray-400 font-black mb-1">PROGRESS</span>
-                  <span className="text-2xl font-black text-gray-900 dark:text-[#e5ebfc]">{totalQuestions + 1} / 20</span>
+                  <span className="text-2xl font-black text-gray-900 dark:text-[#e5ebfc]">{totalQuestions + 1} / {TOTAL_ROUNDS}</span>
                 </div>
 
                 <div className="flex items-center justify-center">
@@ -304,7 +306,7 @@ export default function StroopTest() {
                     ? 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)'
                     : (isDark ? 'linear-gradient(135deg, #064e3b 0%, #065f46 100%)' : 'linear-gradient(135deg, #ffffff 0%, #f9fafb 100%)')
                 }}
-                className="flex flex-col items-center justify-center py-24 rounded-[2.5rem] border border-gray-200 dark:border-[#424855]/10 shadow-2xl relative overflow-hidden min-h-[420px]"
+                className="flex-1 flex flex-col items-center justify-center min-h-0 py-4 md:py-8 rounded-[2.5rem] border border-gray-200 dark:border-[#424855]/10 shadow-2xl relative overflow-hidden"
               >
                 <AnimatePresence mode="wait">
                   {feedback === 'correct' ? (
@@ -346,14 +348,16 @@ export default function StroopTest() {
                   }}
                   className="flex flex-col items-center"
                 >
-                  <div className="mb-4">
-                     <span className={`text-xs font-bold uppercase tracking-widest ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                       {isDark ? 'Say the COLOR' : 'Say the WORD'}
-                     </span>
-                  </div>
+                  {totalQuestions + 1 <= TOTAL_ROUNDS / 2 && (
+                    <div className="mb-4">
+                       <span className={`text-xs font-bold uppercase tracking-widest ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                         {isDark ? 'Say the COLOR' : 'Say the WORD'}
+                       </span>
+                    </div>
+                  )}
 
                   <h2
-                    className={`text-7xl md:text-9xl font-black uppercase tracking-tighter ${currentColor.class} drop-shadow-sm select-none ${!isDark && currentColor.name === 'Yellow' ? 'text-amber-600' : ''}`}
+                    className={`text-[clamp(3rem,15vh,8rem)] font-black uppercase tracking-tighter ${currentColor.class} drop-shadow-sm select-none ${!isDark && currentColor.name === 'Yellow' ? 'text-amber-600' : ''} leading-none`}
                   >
                     {currentWord.name}
                   </h2>
@@ -361,7 +365,7 @@ export default function StroopTest() {
               </motion.div>
 
               {/* Voice Interaction Status */}
-              <div className="flex flex-col items-center gap-8">
+              <div className="flex flex-col items-center gap-4 mt-auto">
                 <div className="bg-gray-50 dark:bg-[#121a28] px-10 py-5 rounded-full border border-gray-200 dark:border-[#424855]/10 shadow-lg flex items-center gap-5 min-w-[340px] justify-between group hover:border-blue-500/30 transition-colors">
                   <span className="text-gray-700 dark:text-[#e5ebfc] font-black tracking-wide uppercase text-sm">
                     {isListening ? (isDark ? 'Listening for color...' : 'Listening for word...') : 'Voice Active'}
