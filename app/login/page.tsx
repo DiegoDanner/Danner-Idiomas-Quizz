@@ -5,13 +5,11 @@ import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import Navbar from '@/components/Navbar';
 import { Mail, Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

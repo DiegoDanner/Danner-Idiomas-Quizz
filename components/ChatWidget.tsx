@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MessageCircle, X, Send, User, Bot, Loader2, Sparkles, Mic } from 'lucide-react';
+import { MessageCircle, X, Send, User, Loader2, Sparkles, Mic } from 'lucide-react';
 import Image from 'next/image';
 import LiveVoiceMode from './LiveVoiceMode';
 import { GoogleGenAI } from "@google/genai";

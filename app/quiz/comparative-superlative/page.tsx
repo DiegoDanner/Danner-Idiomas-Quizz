@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Timer, CheckCircle2, XCircle, RotateCcw, ArrowRight, ArrowLeftRight, Trophy } from 'lucide-react';
 import Link from 'next/link';

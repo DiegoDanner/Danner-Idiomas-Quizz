@@ -31,7 +31,6 @@ export default function ProgressSection() {
     ? Math.round((progressData.reduce((acc, curr) => acc + (curr.score / curr.total_questions), 0) / totalQuizzes) * 100)
     : 0;
   
-  const vocabularyRange = totalQuizzes > 0 ? Math.min(100, totalQuizzes * 5) : 0;
   const dailyStreak = totalQuizzes > 0 ? Math.min(30, totalQuizzes) : 0; // Simplified streak logic
 
   if (loading) {

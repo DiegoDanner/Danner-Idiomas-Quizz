@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 
 export default function Navbar() {
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const { user, signOut } = useAuth();
 

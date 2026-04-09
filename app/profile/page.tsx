@@ -5,10 +5,9 @@ import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { getUserProgress } from '@/lib/progress';
 import Navbar from '@/components/Navbar';
-import { Trophy, Calendar, CheckCircle, ArrowRight, User as UserIcon, Loader2 } from 'lucide-react';
+import { Trophy, Calendar, CheckCircle, User as UserIcon, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 
 interface ProgressRecord {
   id: string;
@@ -30,7 +29,6 @@ export default function ProfilePage() {
   const { user, loading } = useAuth();
   const [progress, setProgress] = useState<ProgressRecord[]>([]);
   const [fetching, setFetching] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
     if (user) {
