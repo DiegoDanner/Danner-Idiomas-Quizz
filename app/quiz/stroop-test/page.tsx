@@ -33,11 +33,11 @@ export default function StroopTest() {
   const [streak, setStreak] = useState(0);
   const { performAction, showAuthModal, setShowAuthModal } = useAuthAction();
   const { user } = useAuth();
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recognitionRef = useRef<any>(null);
 
   // Use refs for game state to avoid stale closures in SpeechRecognition callbacks
-  const stateRef = useRef({ isDark, currentColor, currentWord, step, totalQuestions });
+  const stateRef = useRef({ isDark, currentColor, currentWord, step, totalQuestions, streak });
 
   useEffect(() => {
     stateRef.current = { isDark, currentColor, currentWord, step, totalQuestions, streak };
@@ -189,7 +189,7 @@ export default function StroopTest() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [step]);
+  }, [step, timeLeft]);
 
   useEffect(() => {
     if (step === 'results' && user) {

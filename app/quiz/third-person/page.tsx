@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, CheckCircle2, RotateCcw, ArrowRight, Mic, Volume2, Info, XCircle, Play } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, RotateCcw, ArrowRight, Mic, Volume2, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { useAuthAction } from '@/hooks/useAuthAction';

@@ -28,7 +28,7 @@ export const saveQuizProgress = async (progress: QuizProgress) => {
       return null;
     }
     return data;
-  } catch (err) {
+  } catch {
     console.warn('Could not save progress: Supabase not configured');
     return null;
   }
@@ -50,7 +50,7 @@ export const getUserProgress = async () => {
       return [];
     }
     return data;
-  } catch (err) {
+  } catch {
     console.warn('Could not fetch progress: Supabase not configured');
     return [];
   }

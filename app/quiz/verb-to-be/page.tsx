@@ -84,7 +84,7 @@ const OPTIONS = ["am", "is", "are", "'m", "'s", "'re"];
 
 export default function VerbToBeQuiz() {
   const [step, setStep] = useState<'start' | 'quiz' | 'results'>('start');
-  const [currentConvIndex, setCurrentConvIndex] = useState(0);
+  const [, setCurrentConvIndex] = useState(0);
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
   const [isLineChecked, setIsLineChecked] = useState(false);
