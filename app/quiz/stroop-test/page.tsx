@@ -35,6 +35,7 @@ export default function StroopTest() {
   const { user } = useAuth();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recognitionRef = useRef<any>(null);
+  const isValidatingRef = useRef(false);
 
   // Use refs for game state to avoid stale closures in SpeechRecognition callbacks
   const stateRef = useRef({ isDark, currentColor, currentWord, step, totalQuestions, streak });
@@ -81,11 +82,14 @@ export default function StroopTest() {
   };
 
   const handleAnswer = useCallback((input: string) => {
+    if (isValidatingRef.current) return;
     const { isDark: dark, currentColor: color, currentWord: word, totalQuestions: count } = stateRef.current;
     if (count >= 20 || feedback) return;
 
     const expected = dark ? color.name : word.name;
     const isCorrect = input.toLowerCase() === expected.toLowerCase();
+
+    isValidatingRef.current = true;
 
     if (isCorrect) {
       setScore(s => s + 1);
@@ -102,6 +106,7 @@ export default function StroopTest() {
           } else {
             generateNewPair();
           }
+          isValidatingRef.current = false;
           return nextCount;
         });
       }, 1500);
@@ -119,6 +124,7 @@ export default function StroopTest() {
           } else {
             generateNewPair();
           }
+          isValidatingRef.current = false;
           return nextCount;
         });
       }, 2000);
@@ -220,27 +226,27 @@ export default function StroopTest() {
                   <Zap className="w-12 h-12 text-blue-500" />
                 </div>
               </div>
-              <h1 className="font-headline text-4xl md:text-5xl font-extrabold mb-6 text-gray-900 dark:text-[#e5ebfc]">
+              <h1 className="font-headline text-3xl sm:text-4xl md:text-5xl font-extrabold mb-6 text-gray-900 dark:text-[#e5ebfc]">
                 STROOP <span className="text-blue-500">TEST</span>
               </h1>
-              <div className="bg-gray-50 dark:bg-[#121a28] p-8 rounded-2xl border border-gray-200 dark:border-[#424855]/10 mb-12 max-w-2xl mx-auto text-left">
-                <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-[#e5ebfc]">How to Play:</h3>
+              <div className="bg-gray-50 dark:bg-[#121a28] p-6 sm:p-8 rounded-2xl border border-gray-200 dark:border-[#424855]/10 mb-12 max-w-2xl mx-auto text-left overflow-hidden">
+                <h3 className="text-lg sm:text-xl font-bold mb-4 text-gray-900 dark:text-[#e5ebfc]">How to Play:</h3>
                 <ul className="space-y-4 text-gray-600 dark:text-[#a5abbb]">
-                  <li className="flex gap-3 italic">
-                    <span className="font-bold text-blue-500">1.</span>
-                    Wait for the round to load and look at the background.
+                  <li className="flex gap-3 italic text-sm sm:text-base break-words">
+                    <span className="font-bold text-blue-500 shrink-0">1.</span>
+                    <span>Wait for the round to load and look at the background.</span>
                   </li>
-                  <li className="flex gap-3 font-bold text-lg">
-                    <span className="font-bold text-blue-500">2.</span>
-                    If background is <span className="text-gray-900 dark:text-white underline">DARK</span>: Say the <span className="text-blue-500">COLOR</span> of the text.
+                  <li className="flex gap-3 font-bold text-base sm:text-lg break-words">
+                    <span className="font-bold text-blue-500 shrink-0">2.</span>
+                    <span>If background is <span className="text-gray-900 dark:text-white underline">DARK</span>: Say the <span className="text-blue-500">COLOR</span> of the text.</span>
                   </li>
-                  <li className="flex gap-3 font-bold text-lg">
-                    <span className="font-bold text-blue-500">3.</span>
-                    If background is <span className="text-gray-400 underline">WHITE</span>: Say the <span className="text-blue-500">WORD</span> itself.
+                  <li className="flex gap-3 font-bold text-base sm:text-lg break-words">
+                    <span className="font-bold text-blue-500 shrink-0">3.</span>
+                    <span>If background is <span className="text-gray-400 underline">WHITE</span>: Say the <span className="text-blue-500">WORD</span> itself.</span>
                   </li>
-                  <li className="flex gap-3">
-                    <span className="font-bold text-blue-500">4.</span>
-                    Speak clearly or click the buttons. 20 rounds total!
+                  <li className="flex gap-3 text-sm sm:text-base break-words">
+                    <span className="font-bold text-blue-500 shrink-0">4.</span>
+                    <span>Speak clearly or click the buttons. 20 rounds total!</span>
                   </li>
                 </ul>
                 <div className="mt-8 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl flex items-center gap-3">
@@ -340,7 +346,7 @@ export default function StroopTest() {
                   }}
                   className="flex flex-col items-center"
                 >
-                  <div className="absolute top-6 left-8">
+                  <div className="mb-4">
                      <span className={`text-xs font-bold uppercase tracking-widest ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                        {isDark ? 'Say the COLOR' : 'Say the WORD'}
                      </span>
