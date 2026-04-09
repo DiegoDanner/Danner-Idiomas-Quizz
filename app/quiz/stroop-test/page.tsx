@@ -26,7 +26,7 @@ export default function StroopTest() {
   const [currentWord, setCurrentWord] = useState(COLORS[0]);
   const [currentColor, setCurrentColor] = useState(COLORS[1]);
   const [score, setScore] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(30);
+  const [, setTimeLeft] = useState(30);
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [isDark, setIsDark] = useState(true);
   const [isListening, setIsListening] = useState(false);
@@ -35,7 +35,6 @@ export default function StroopTest() {
   const [streak, setStreak] = useState(0);
   const { performAction, showAuthModal, setShowAuthModal } = useAuthAction();
   const { user } = useAuth();
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recognitionRef = useRef<any>(null);
   const isValidatingRef = useRef(false);
 
@@ -180,8 +179,8 @@ export default function StroopTest() {
   }, [handleAnswer]);
 
   useEffect(() => {
-    if (step === 'game' && timeLeft > 0) {
-      timerRef.current = setInterval(() => {
+    if (step === 'game') {
+      const interval = setInterval(() => {
         setTimeLeft(prev => {
           if (prev <= 1) {
             setStep('results');
@@ -190,14 +189,9 @@ export default function StroopTest() {
           return prev - 1;
         });
       }, 1000);
-    } else {
-      if (timerRef.current) clearInterval(timerRef.current);
+      return () => clearInterval(interval);
     }
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [step, timeLeft]);
+  }, [step]);
 
   useEffect(() => {
     if (step === 'results' && user) {
@@ -210,10 +204,10 @@ export default function StroopTest() {
   }, [step, user, score, totalQuestions]);
 
   return (
-    <div className="h-screen bg-white dark:bg-[#080e1a] transition-colors duration-300 flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-white dark:bg-[#080e1a] transition-colors duration-300 flex flex-col">
       <Navbar />
 
-      <main className="flex-1 flex flex-col pt-24 pb-4 px-4 md:px-6 max-w-4xl mx-auto w-full min-h-0">
+      <main className="flex-1 flex flex-col pt-24 pb-4 px-4 md:px-6 max-w-4xl mx-auto w-full">
         <AnimatePresence mode="wait">
           {step === 'start' && (
             <motion.div
