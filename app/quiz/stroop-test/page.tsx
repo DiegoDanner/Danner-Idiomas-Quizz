@@ -27,24 +27,24 @@ export default function StroopTest() {
   const [currentWord, setCurrentWord] = useState(COLORS[0]);
   const [currentColor, setCurrentColor] = useState(COLORS[1]);
   const [score, setScore] = useState(0);
-  const [, setTimeLeft] = useState(30);
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [isDark, setIsDark] = useState(true);
   const [isListening, setIsListening] = useState(false);
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [lastTranscript, setLastTranscript] = useState('');
   const [streak, setStreak] = useState(0);
-  const { performAction, showAuthModal, setShowAuthModal } = useAuthAction();
+  const [roundTimeLeft, setRoundTimeLeft] = useState(5);
+  const { showAuthModal, setShowAuthModal } = useAuthAction();
   const { user } = useAuth();
   const recognitionRef = useRef<any>(null);
   const isValidatingRef = useRef(false);
 
   // Use refs for game state to avoid stale closures in SpeechRecognition callbacks
-  const stateRef = useRef({ isDark, currentColor, currentWord, step, totalQuestions, streak });
+  const stateRef = useRef({ isDark, currentColor, currentWord, step, totalQuestions, streak, roundTimeLeft });
 
   useEffect(() => {
-    stateRef.current = { isDark, currentColor, currentWord, step, totalQuestions, streak };
-  }, [isDark, currentColor, currentWord, step, totalQuestions, streak]);
+    stateRef.current = { isDark, currentColor, currentWord, step, totalQuestions, streak, roundTimeLeft };
+  }, [isDark, currentColor, currentWord, step, totalQuestions, streak, roundTimeLeft]);
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current) {
@@ -67,20 +67,19 @@ export default function StroopTest() {
     setCurrentWord(COLORS[wordIndex]);
     setCurrentColor(COLORS[colorIndex]);
     setIsDark(Math.random() > 0.5);
+    setRoundTimeLeft(5);
   }, []);
 
   const startGame = () => {
-    performAction(() => {
-      setScore(0);
-      setStreak(0);
-      setTimeLeft(120); // More time for voice
-      setTotalQuestions(0);
-      setLastTranscript('');
-      setFeedback(null);
-      generateNewPair();
-      setStep('game');
-      startListening();
-    });
+    setScore(0);
+    setStreak(0);
+    setRoundTimeLeft(5);
+    setTotalQuestions(0);
+    setLastTranscript("");
+    setFeedback(null);
+    generateNewPair();
+    setStep("game");
+    startListening();
   };
 
   const handleAnswer = useCallback((input: string) => {
@@ -180,11 +179,11 @@ export default function StroopTest() {
   }, [handleAnswer]);
 
   useEffect(() => {
-    if (step === 'game') {
+    if (step === 'game' && !feedback) {
       const interval = setInterval(() => {
-        setTimeLeft(prev => {
+        setRoundTimeLeft(prev => {
           if (prev <= 1) {
-            setStep('results');
+            handleAnswer('__timeout__');
             return 0;
           }
           return prev - 1;
@@ -192,7 +191,7 @@ export default function StroopTest() {
       }, 1000);
       return () => clearInterval(interval);
     }
-  }, [step]);
+  }, [step, feedback, handleAnswer]);
 
   useEffect(() => {
     if (step === 'results') {
@@ -291,7 +290,7 @@ export default function StroopTest() {
 
                 <div className="flex items-center justify-center">
                   <div className="w-14 h-14 rounded-full border-4 border-blue-500/30 flex items-center justify-center bg-blue-500/10 shadow-lg shadow-blue-500/10">
-                    <span className="text-2xl font-black text-blue-500">{streak}</span>
+                    <span className="text-2xl font-black text-blue-500">{roundTimeLeft}</span>
                   </div>
                 </div>
 
@@ -308,7 +307,7 @@ export default function StroopTest() {
                     ? 'linear-gradient(135deg, #065f46 0%, #064e3b 100%)'
                     : feedback === 'incorrect'
                     ? 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)'
-                    : (isDark ? 'linear-gradient(135deg, #064e3b 0%, #065f46 100%)' : 'linear-gradient(135deg, #ffffff 0%, #f9fafb 100%)')
+                    : (isDark ? 'linear-gradient(135deg, #1f2937 0%, #111827 100%)' : 'linear-gradient(135deg, #ffffff 0%, #f9fafb 100%)')
                 }}
                 className="flex-1 flex flex-col items-center justify-center min-h-0 py-4 md:py-8 rounded-[2.5rem] border border-gray-200 dark:border-[#424855]/10 shadow-2xl relative overflow-hidden"
               >
