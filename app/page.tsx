@@ -12,7 +12,8 @@ import {
   Mic, 
   HelpCircle, 
   Zap,
-  Frown
+  Frown,
+  HeartPulse
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import QuizCard from '@/components/QuizCard';
@@ -119,6 +120,16 @@ const QUIZZES = [
     actionText: 'Start Test',
     actionColor: 'text-blue-500',
     href: '/quiz/stroop-test',
+  },
+  {
+    title: 'Doctor Phrases',
+    description: 'Challenge your skills with our interactive medical modules. Each phrase is designed to accelerate your fluency through immersive practice.',
+    icon: HeartPulse,
+    iconColor: 'text-red-500',
+    iconBg: 'bg-red-500/10',
+    actionText: 'Start Practice',
+    actionColor: 'text-red-500',
+    href: '/quiz/doctor-phrases',
   },
 ];
 
