@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Volume2, Mic, MicOff, Check, X, RotateCcw, ChevronRight, ChevronLeft } from 'lucide-react';
-import { GoogleGenAI, Modality } from '@google/genai';
+import { GoogleGenAI } from '@google/genai';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { Phrase } from '@/lib/doctor-phrases-data';
 
@@ -28,6 +28,18 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
   const processedBlobRef = useRef<Blob | null>(null);
   const { isRecording, audioBlob, startRecording, stopRecording, setAudioBlob, prepareStream } = useAudioRecorder();
 
+  const playTTS = useCallback(() => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(phrase.english);
+    utterance.lang = 'en-US';
+    utterance.rate = 0.9;
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    window.speechSynthesis.speak(utterance);
+  }, [phrase.english]);
+
   // Pre-warm microphone on mount
   useEffect(() => {
     prepareStream();
@@ -42,7 +54,18 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
     setHasUserSpoken(false);
     processedBlobRef.current = null;
     setAudioBlob(null);
-  }, [phrase.id, setAudioBlob]);
+
+    // Auto-play TTS when card appears
+    const timer = setTimeout(() => {
+      playTTS();
+    }, 500);
+    return () => {
+      clearTimeout(timer);
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [phrase.id, playTTS, setAudioBlob]);
 
   const getGemini = useCallback(() => {
     const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
@@ -52,59 +75,6 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
     }
     return new GoogleGenAI({ apiKey });
   }, []);
-
-  const playTTS = async () => {
-    if (isSpeaking) return;
-    const ai = getGemini();
-    if (!ai) return;
-
-    setIsSpeaking(true);
-    try {
-      const response = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
-        contents: [{ role: 'user', parts: [{ text: `Say clearly: ${phrase.english}` }] }],
-        config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: { voiceName: 'Fenrir' },
-            },
-          },
-        },
-      });
-
-      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-      if (base64Audio) {
-        const binaryString = atob(base64Audio);
-        const len = binaryString.length;
-        const bytes = new Uint8Array(len);
-        for (let i = 0; i < len; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-
-        const int16Buffer = new Int16Array(bytes.buffer);
-        const float32Buffer = new Float32Array(int16Buffer.length);
-        for (let i = 0; i < int16Buffer.length; i++) {
-          float32Buffer[i] = int16Buffer[i] / 32768;
-        }
-
-        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-        const audioBuffer = audioContext.createBuffer(1, float32Buffer.length, 24000);
-        audioBuffer.getChannelData(0).set(float32Buffer);
-
-        const source = audioContext.createBufferSource();
-        source.buffer = audioBuffer;
-        source.connect(audioContext.destination);
-        source.onended = () => setIsSpeaking(false);
-        source.start();
-      } else {
-        setIsSpeaking(false);
-      }
-    } catch (error) {
-      console.error('TTS Error:', error);
-      setIsSpeaking(false);
-    }
-  };
 
   const transcribeAudio = useCallback(async (blob: Blob) => {
     if (isRecording || processedBlobRef.current === blob) return;
@@ -156,10 +126,13 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
           setTranscription(capturedText);
           setVoiceFeedback(result.feedback || '');
 
-          if (capturedText !== "" && result.isMatch === true && !isRecording && hasUserSpoken) {
+          const normalize = (text: string) => text.toLowerCase().replace(/[^\w\s]/g, '').trim();
+          const isMatchManual = normalize(capturedText) === normalize(phrase.english);
+
+          if (capturedText !== "" && (result.isMatch === true || isMatchManual) && !isRecording && hasUserSpoken) {
             setFeedback('success');
             onComplete();
-            setTimeout(() => setIsFlipped(true), 1500);
+            setTimeout(() => setIsFlipped(true), 1000);
           } else {
             setFeedback('error');
           }
@@ -181,6 +154,17 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
     }
   }, [audioBlob, transcribeAudio, isRecording]);
 
+  const handleStartRecording = () => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    setFeedback(null);
+    setTranscription('');
+    setVoiceFeedback('');
+    setHasUserSpoken(true);
+    startRecording();
+  };
+
   return (
     <div className="w-full max-w-md mx-auto perspective-1000">
       <div className="relative h-[400px] w-full transition-all duration-500 preserve-3d">
@@ -198,8 +182,8 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
                 <span className="text-[10px] font-mono text-gray-500 dark:text-[#a5abbb] uppercase tracking-[0.2em] font-bold">Medical English</span>
                 <button
                   onClick={playTTS}
-                  disabled={isSpeaking}
-                  className={`p-3 rounded-2xl transition-all duration-300 ${isSpeaking ? 'bg-gray-100 dark:bg-[#1d2636] text-gray-400' : 'bg-gray-100 dark:bg-[#1d2636] text-[#6cb2ff] hover:bg-white dark:hover:bg-[#252f3f] hover:scale-110'}`}
+                  disabled={isSpeaking || isRecording}
+                  className={`p-3 rounded-2xl transition-all duration-300 ${(isSpeaking || isRecording) ? 'bg-gray-100 dark:bg-[#1d2636] text-gray-400 opacity-50' : 'bg-gray-100 dark:bg-[#1d2636] text-[#6cb2ff] hover:bg-white dark:hover:bg-[#252f3f] hover:scale-110'}`}
                 >
                   <Volume2 size={24} className={isSpeaking ? 'animate-pulse' : ''} />
                 </button>
@@ -250,16 +234,17 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
                   </motion.button>
                 )}
                 <button
-                  onMouseDown={(e) => { e.preventDefault(); setHasUserSpoken(true); startRecording(); }}
+                  onMouseDown={(e) => { e.preventDefault(); handleStartRecording(); }}
                   onMouseUp={(e) => { e.preventDefault(); stopRecording(); }}
                   onMouseLeave={(e) => { e.preventDefault(); stopRecording(); }}
-                  onTouchStart={(e) => { e.preventDefault(); setHasUserSpoken(true); startRecording(); }}
+                  onTouchStart={(e) => { e.preventDefault(); handleStartRecording(); }}
                   onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }}
                   onTouchCancel={(e) => { e.preventDefault(); stopRecording(); }}
+                  disabled={isTranscribing}
                   className={`relative w-20 h-20 rounded-[2rem] flex items-center justify-center transition-all duration-500 ${
                     isRecording
                       ? 'bg-red-500 scale-110 shadow-[0_0_30px_rgba(239,68,68,0.4)]'
-                      : 'bg-[#6cb2ff] hover:bg-[#58a2f0] shadow-[0_0_20px_rgba(108,178,255,0.3)] hover:scale-105'
+                      : isTranscribing ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#6cb2ff] hover:bg-[#58a2f0] shadow-[0_0_20px_rgba(108,178,255,0.3)] hover:scale-105'
                   }`}
                 >
                   {isRecording ? <MicOff size={28} className="text-white" /> : <Mic size={28} className="text-[#002442]" />}

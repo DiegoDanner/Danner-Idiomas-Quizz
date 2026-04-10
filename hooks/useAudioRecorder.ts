@@ -14,7 +14,7 @@ export function useAudioRecorder() {
 
   // Pre-warm microphone
   const prepareStream = useCallback(async () => {
-    if (streamRef.current) return streamRef.current;
+    if (streamRef.current && streamRef.current.active) return streamRef.current;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
@@ -31,7 +31,14 @@ export function useAudioRecorder() {
 
     try {
       const stream = await prepareStream();
-      if (!stream) throw new Error('No stream available');
+      if (!stream || !stream.active) {
+        // Retry once if stream became inactive
+        streamRef.current = null;
+        const newStream = await prepareStream();
+        if (!newStream) throw new Error('No stream available');
+      }
+
+      const activeStream = streamRef.current!;
 
       // If the user released the button before the stream was ready, stop immediately
       if (!isRecordingRequestedRef.current) {
@@ -39,7 +46,7 @@ export function useAudioRecorder() {
         return;
       }
 
-      const mediaRecorder = new MediaRecorder(stream);
+      const mediaRecorder = new MediaRecorder(activeStream);
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
