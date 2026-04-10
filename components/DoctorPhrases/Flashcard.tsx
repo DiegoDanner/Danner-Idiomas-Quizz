@@ -3,8 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Volume2, Mic, MicOff, Check, X, RotateCcw, ChevronRight, ChevronLeft } from 'lucide-react';
-import { GoogleGenAI } from '@google/genai';
-import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { Phrase } from '@/lib/doctor-phrases-data';
 
 interface FlashcardProps {
@@ -19,15 +17,100 @@ interface FlashcardProps {
 
 export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast, isCompleted, onComplete }: FlashcardProps) {
   const [isFlipped, setIsFlipped] = useState(false);
-  const [isTranscribing, setIsTranscribing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const [transcription, setTranscription] = useState('');
-  const [voiceFeedback, setVoiceFeedback] = useState('');
   const [feedback, setFeedback] = useState<'success' | 'error' | null>(null);
-  const processedBlobRef = useRef<Blob | null>(null);
-  const safetyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const recordingLimitRef = useRef<NodeJS.Timeout | null>(null);
-  const { isRecording, audioBlob, startRecording, stopRecording, setAudioBlob, prepareStream } = useAudioRecorder();
+
+  const recognitionRef = useRef<any>(null);
+  const finalTranscriptRef = useRef('');
+  const hasUserSpokenRef = useRef(false);
+
+  const normalize = (text: string) =>
+    text.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
+
+  const validateResult = useCallback((spokenText: string) => {
+    const expected = phrase.english;
+    const normalizedSpoken = normalize(spokenText);
+    const normalizedExpected = normalize(expected);
+
+    console.log("FINAL TRANSCRIPT:", spokenText);
+    console.log("EXPECTED:", expected);
+
+    if (normalizedSpoken === "") return;
+
+    if (normalizedSpoken === normalizedExpected) {
+      setFeedback('success');
+      onComplete();
+      // Delay flip for visual feedback
+      setTimeout(() => setIsFlipped(true), 1000);
+    } else {
+      setFeedback('error');
+    }
+  }, [phrase.english, onComplete]);
+
+  const initRecognition = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onresult = (event: any) => {
+      let finalTranscript = "";
+      let interimTranscript = "";
+
+      for (let i = 0; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript;
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+
+      if (finalTranscript) {
+        finalTranscriptRef.current = finalTranscript.trim();
+        hasUserSpokenRef.current = true;
+      }
+
+      setTranscription(finalTranscript.trim() || interimTranscript.trim());
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+      // Fallback on onend: If transcript exists and user intended to speak -> validate
+      if (finalTranscriptRef.current && hasUserSpokenRef.current) {
+        validateResult(finalTranscriptRef.current);
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      if (event.error !== 'no-speech') {
+        console.error("Speech recognition error:", event.error);
+        setFeedback('error');
+      }
+      setIsRecording(false);
+    };
+
+    recognitionRef.current = recognition;
+  }, [validateResult]);
+
+  useEffect(() => {
+    initRecognition();
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {
+          // ignore
+        }
+      }
+    };
+  }, [initRecognition]);
 
   const playTTS = useCallback(() => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
@@ -42,20 +125,11 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
   }, [phrase.english]);
 
   useEffect(() => {
-    prepareStream();
-    return () => {
-      if (safetyTimeoutRef.current) clearTimeout(safetyTimeoutRef.current);
-      if (recordingLimitRef.current) clearTimeout(recordingLimitRef.current);
-    };
-  }, [prepareStream]);
-
-  useEffect(() => {
     setIsFlipped(false);
     setTranscription('');
-    setVoiceFeedback('');
     setFeedback(null);
-    processedBlobRef.current = null;
-    setAudioBlob(null);
+    finalTranscriptRef.current = '';
+    hasUserSpokenRef.current = false;
 
     const timer = setTimeout(() => {
       playTTS();
@@ -66,94 +140,35 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
         window.speechSynthesis.cancel();
       }
     };
-  }, [phrase.id, playTTS, setAudioBlob]);
+  }, [phrase.id, playTTS]);
 
-  const getGemini = useCallback(() => {
-    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-    if (!apiKey) return null;
-    return new GoogleGenAI({ apiKey });
-  }, []);
-
-  const transcribeAudio = useCallback(async (blob: Blob) => {
-    if (processedBlobRef.current === blob) return;
-    processedBlobRef.current = blob;
-
-    const ai = getGemini();
-    if (!ai) {
-      setIsTranscribing(false);
-      return;
+  const handleStartRecording = () => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
     }
-
-    setIsTranscribing(true);
-    if (safetyTimeoutRef.current) clearTimeout(safetyTimeoutRef.current);
-    safetyTimeoutRef.current = setTimeout(() => setIsTranscribing(false), 12000);
-
-    try {
-      const reader = new FileReader();
-      const readerPromise = new Promise<string>((resolve) => {
-        reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
-      });
-      reader.readAsDataURL(blob);
-      const base64Data = await readerPromise;
-
-      const response = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              {
-                text: `Pronunciation coach: Target phrase "${phrase.english}". Evaluate audio. Return JSON: {"transcription": string, "isMatch": boolean, "feedback": short string}`
-              },
-              { inlineData: { mimeType: blob.type, data: base64Data } }
-            ]
-          }
-        ],
-        config: { responseMimeType: "application/json" }
-      });
-
-      const result = JSON.parse(response.text || '{}');
-      const text = (result.transcription || '').trim();
-      setTranscription(text);
-      setVoiceFeedback(result.feedback || '');
-
-      const norm = (t: string) => t.toLowerCase().replace(/[^\w\s]/g, '').trim();
-      const match = norm(text) === norm(phrase.english) || result.isMatch === true;
-
-      if (text !== "" && match) {
-        setFeedback('success');
-        onComplete();
-        setTimeout(() => setIsFlipped(true), 1000);
-      } else {
-        setFeedback('error');
-      }
-    } catch (e) {
-      console.error('STT error:', e);
-      setFeedback('error');
-    } finally {
-      setIsTranscribing(false);
-      if (safetyTimeoutRef.current) clearTimeout(safetyTimeoutRef.current);
-    }
-  }, [phrase.english, getGemini, onComplete]);
-
-  useEffect(() => {
-    if (audioBlob && audioBlob.size > 0 && !isRecording) {
-      transcribeAudio(audioBlob);
-    }
-  }, [audioBlob, transcribeAudio, isRecording]);
-
-  const handleStart = () => {
-    if (typeof window !== 'undefined' && window.speechSynthesis) window.speechSynthesis.cancel();
     setFeedback(null);
     setTranscription('');
-    setVoiceFeedback('');
-    startRecording();
-    recordingLimitRef.current = setTimeout(() => stopRecording(), 7000);
+    finalTranscriptRef.current = '';
+    hasUserSpokenRef.current = true;
+    setIsRecording(true);
+    try {
+      recognitionRef.current?.start();
+    } catch (e) {
+      console.error("Error starting recognition:", e);
+      // Try re-initializing if it failed
+      initRecognition();
+      setTimeout(() => {
+        try { recognitionRef.current?.start(); } catch (err) { console.error("Retry failed:", err); }
+      }, 100);
+    }
   };
 
-  const handleStop = () => {
-    if (recordingLimitRef.current) clearTimeout(recordingLimitRef.current);
-    stopRecording();
+  const handleStopRecording = () => {
+    try {
+      recognitionRef.current?.stop();
+    } catch {
+      // ignore
+    }
   };
 
   return (
@@ -173,8 +188,8 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
                 <span className="text-[10px] font-mono text-gray-500 dark:text-[#a5abbb] uppercase tracking-[0.2em] font-bold">Medical English</span>
                 <button
                   onClick={playTTS}
-                  disabled={isSpeaking || isRecording || isTranscribing}
-                  className={`p-3 rounded-2xl transition-all duration-300 ${(isSpeaking || isRecording || isTranscribing) ? 'bg-gray-100 dark:bg-[#1d2636] text-gray-400 opacity-50' : 'bg-gray-100 dark:bg-[#1d2636] text-[#6cb2ff] hover:bg-white dark:hover:bg-[#252f3f] hover:scale-110'}`}
+                  disabled={isSpeaking || isRecording}
+                  className={`p-3 rounded-2xl transition-all duration-300 ${(isSpeaking || isRecording) ? 'bg-gray-100 dark:bg-[#1d2636] text-gray-400 opacity-50' : 'bg-gray-100 dark:bg-[#1d2636] text-[#6cb2ff] hover:bg-white dark:hover:bg-[#252f3f] hover:scale-110'}`}
                 >
                   <Volume2 size={24} className={isSpeaking ? 'animate-pulse' : ''} />
                 </button>
@@ -186,7 +201,7 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
                 </h2>
 
                 <div className="h-16 flex flex-col items-center justify-center w-full">
-                  {(isRecording || isTranscribing) ? (
+                  {isRecording ? (
                     <div className="flex space-x-2">
                       <motion.div animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 0.8 }} className="w-2.5 h-2.5 bg-[#6cb2ff] rounded-full" />
                       <motion.div animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 0.8, delay: 0.2 }} className="w-2.5 h-2.5 bg-[#6cb2ff] rounded-full" />
@@ -198,9 +213,6 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
                         {feedback === 'success' ? <Check size={16} /> : <X size={16} />}
                         <span className="italic">&quot;{transcription}&quot;</span>
                       </div>
-                      {voiceFeedback && feedback === 'error' && (
-                        <p className="text-[10px] text-gray-500 dark:text-[#a5abbb] font-medium italic">{voiceFeedback}</p>
-                      )}
                     </motion.div>
                   ) : (
                     <p className="text-sm text-gray-500 dark:text-[#a5abbb] font-medium tracking-wide">Read aloud to unlock translation</p>
@@ -209,7 +221,7 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
               </div>
 
               <div className="w-full flex flex-col items-center space-y-6">
-                {isCompleted && !isRecording && !isTranscribing && (
+                {isCompleted && !isRecording && (
                   <motion.button
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -221,14 +233,13 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
                   </motion.button>
                 )}
                 <button
-                  onMouseDown={(e) => { e.preventDefault(); handleStart(); }}
-                  onMouseUp={(e) => { e.preventDefault(); handleStop(); }}
-                  onMouseLeave={(e) => { e.preventDefault(); handleStop(); }}
-                  onTouchStart={(e) => { e.preventDefault(); handleStart(); }}
-                  onTouchEnd={(e) => { e.preventDefault(); handleStop(); }}
-                  onTouchCancel={(e) => { e.preventDefault(); handleStop(); }}
-                  className={`relative w-20 h-20 rounded-[2rem] flex items-center justify-center transition-all duration-500 ${isRecording ? 'bg-red-500 scale-110 shadow-[0_0_30px_rgba(239,68,68,0.4)]' : isTranscribing ? 'bg-gray-400 cursor-wait opacity-50' : 'bg-[#6cb2ff] hover:bg-[#58a2f0] shadow-[0_0_20px_rgba(108,178,255,0.3)] hover:scale-105'}`}
-                  disabled={isTranscribing}
+                  onMouseDown={(e) => { e.preventDefault(); handleStartRecording(); }}
+                  onMouseUp={(e) => { e.preventDefault(); handleStopRecording(); }}
+                  onMouseLeave={(e) => { e.preventDefault(); handleStopRecording(); }}
+                  onTouchStart={(e) => { e.preventDefault(); handleStartRecording(); }}
+                  onTouchEnd={(e) => { e.preventDefault(); handleStopRecording(); }}
+                  onTouchCancel={(e) => { e.preventDefault(); handleStopRecording(); }}
+                  className={`relative w-20 h-20 rounded-[2rem] flex items-center justify-center transition-all duration-500 ${isRecording ? 'bg-red-500 scale-110 shadow-[0_0_30px_rgba(239,68,68,0.4)]' : 'bg-[#6cb2ff] hover:bg-[#58a2f0] shadow-[0_0_20px_rgba(108,178,255,0.3)] hover:scale-105'}`}
                 >
                   {isRecording ? <MicOff size={28} className="text-white" /> : <Mic size={28} className="text-[#002442]" />}
                   {isRecording && (
@@ -236,7 +247,7 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
                   )}
                 </button>
                 <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500 dark:text-[#a5abbb] font-black">
-                  {isRecording ? 'Listening...' : isTranscribing ? 'Processing...' : 'Hold to speak'}
+                  {isRecording ? 'Listening...' : 'Hold to speak'}
                 </p>
               </div>
             </motion.div>
