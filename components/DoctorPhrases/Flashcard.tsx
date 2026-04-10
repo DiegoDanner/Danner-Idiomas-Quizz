@@ -26,6 +26,7 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
   const [feedback, setFeedback] = useState<'success' | 'error' | null>(null);
   const [hasUserSpoken, setHasUserSpoken] = useState(false);
   const processedBlobRef = useRef<Blob | null>(null);
+  const transcriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { isRecording, audioBlob, startRecording, stopRecording, setAudioBlob, prepareStream } = useAudioRecorder();
 
   const playTTS = useCallback(() => {
@@ -43,6 +44,9 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
   // Pre-warm microphone on mount
   useEffect(() => {
     prepareStream();
+    return () => {
+      if (transcriptionTimeoutRef.current) clearTimeout(transcriptionTimeoutRef.current);
+    };
   }, [prepareStream]);
 
   // Reset state when phrase changes
@@ -81,45 +85,55 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
     processedBlobRef.current = blob;
 
     const ai = getGemini();
-    if (!ai) return;
+    if (!ai) {
+      setIsTranscribing(false);
+      return;
+    }
 
     setIsTranscribing(true);
+
+    // Safety timeout: Reset transcribing state after 8 seconds if no result
+    if (transcriptionTimeoutRef.current) clearTimeout(transcriptionTimeoutRef.current);
+    transcriptionTimeoutRef.current = setTimeout(() => {
+      setIsTranscribing(false);
+    }, 8000);
+
     try {
       const reader = new FileReader();
       reader.readAsDataURL(blob);
       reader.onloadend = async () => {
-        const base64Data = (reader.result as string).split(',')[1];
-
-        const response = await ai.models.generateContent({
-          model: "gemini-1.5-flash",
-          contents: [
-            {
-              role: 'user',
-              parts: [
-                {
-                  text: `You are an English pronunciation coach.
-                  Listen to the audio and compare it to the target phrase: "${phrase.english}".
-
-                  Evaluate if the user said the phrase correctly.
-                  CRITICAL: If the audio is silent or contains no recognizable speech, return isMatch: false and transcription: "".
-
-                  Return a JSON object with these fields:
-                  - "transcription": The exact words you heard (empty string if nothing heard).
-                  - "isMatch": Boolean, true ONLY if the user spoke and matched the phrase.
-                  - "feedback": A very short, encouraging tip in English if they missed something (max 10 words).
-
-                  Return ONLY the JSON object.`
-                },
-                { inlineData: { mimeType: blob.type, data: base64Data } }
-              ]
-            }
-          ],
-          config: {
-            responseMimeType: "application/json",
-          }
-        });
-
         try {
+          const base64Data = (reader.result as string).split(',')[1];
+
+          const response = await ai.models.generateContent({
+            model: "gemini-1.5-flash",
+            contents: [
+              {
+                role: 'user',
+                parts: [
+                  {
+                    text: `You are an English pronunciation coach.
+                    Listen to the audio and compare it to the target phrase: "${phrase.english}".
+
+                    Evaluate if the user said the phrase correctly.
+                    CRITICAL: If the audio is silent or contains no recognizable speech, return isMatch: false and transcription: "".
+
+                    Return a JSON object with these fields:
+                    - "transcription": The exact words you heard (empty string if nothing heard).
+                    - "isMatch": Boolean, true ONLY if the user spoke and matched the phrase.
+                    - "feedback": A very short, encouraging tip in English if they missed something (max 10 words).
+
+                    Return ONLY the JSON object.`
+                  },
+                  { inlineData: { mimeType: blob.type, data: base64Data } }
+                ]
+              }
+            ],
+            config: {
+              responseMimeType: "application/json",
+            }
+          });
+
           const result = JSON.parse(response.text || '{}');
           const capturedText = (result.transcription || '').trim();
 
@@ -137,14 +151,17 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
             setFeedback('error');
           }
         } catch (e) {
-          console.error('JSON Parse Error:', e);
+          console.error('Processing error:', e);
           setFeedback('error');
+        } finally {
+          setIsTranscribing(false);
+          if (transcriptionTimeoutRef.current) clearTimeout(transcriptionTimeoutRef.current);
         }
-        setIsTranscribing(false);
       };
     } catch (error) {
       console.error('STT Error:', error);
       setIsTranscribing(false);
+      if (transcriptionTimeoutRef.current) clearTimeout(transcriptionTimeoutRef.current);
     }
   }, [phrase.english, isRecording, getGemini, onComplete, hasUserSpoken]);
 
@@ -165,6 +182,10 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
     startRecording();
   };
 
+  const handleStopRecording = () => {
+    stopRecording();
+  };
+
   return (
     <div className="w-full max-w-md mx-auto perspective-1000">
       <div className="relative h-[400px] w-full transition-all duration-500 preserve-3d">
@@ -182,8 +203,8 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
                 <span className="text-[10px] font-mono text-gray-500 dark:text-[#a5abbb] uppercase tracking-[0.2em] font-bold">Medical English</span>
                 <button
                   onClick={playTTS}
-                  disabled={isSpeaking || isRecording}
-                  className={`p-3 rounded-2xl transition-all duration-300 ${(isSpeaking || isRecording) ? 'bg-gray-100 dark:bg-[#1d2636] text-gray-400 opacity-50' : 'bg-gray-100 dark:bg-[#1d2636] text-[#6cb2ff] hover:bg-white dark:hover:bg-[#252f3f] hover:scale-110'}`}
+                  disabled={isSpeaking || isRecording || isTranscribing}
+                  className={`p-3 rounded-2xl transition-all duration-300 ${(isSpeaking || isRecording || isTranscribing) ? 'bg-gray-100 dark:bg-[#1d2636] text-gray-400 opacity-50' : 'bg-gray-100 dark:bg-[#1d2636] text-[#6cb2ff] hover:bg-white dark:hover:bg-[#252f3f] hover:scale-110'}`}
                 >
                   <Volume2 size={24} className={isSpeaking ? 'animate-pulse' : ''} />
                 </button>
@@ -195,7 +216,7 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
                 </h2>
 
                 <div className="h-16 flex flex-col items-center justify-center w-full">
-                  {isTranscribing ? (
+                  {(isRecording || isTranscribing) ? (
                     <div className="flex space-x-2">
                       <motion.div animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 0.8 }} className="w-2.5 h-2.5 bg-[#6cb2ff] rounded-full" />
                       <motion.div animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 0.8, delay: 0.2 }} className="w-2.5 h-2.5 bg-[#6cb2ff] rounded-full" />
@@ -222,12 +243,12 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
               </div>
 
               <div className="w-full flex flex-col items-center space-y-6">
-                {isCompleted && !isRecording && (
+                {isCompleted && !isRecording && !isTranscribing && (
                   <motion.button
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     onClick={onNext}
-                    className="flex items-center space-x-2 px-6 py-2 bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-green-500/20 transition-all"
+                    className="flex items-center space-x-2 px-6 py-2 bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-green-500/30 transition-all"
                   >
                     <span>Proceed to Next</span>
                     <ChevronRight size={16} />
@@ -235,17 +256,19 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
                 )}
                 <button
                   onMouseDown={(e) => { e.preventDefault(); handleStartRecording(); }}
-                  onMouseUp={(e) => { e.preventDefault(); stopRecording(); }}
-                  onMouseLeave={(e) => { e.preventDefault(); stopRecording(); }}
+                  onMouseUp={(e) => { e.preventDefault(); handleStopRecording(); }}
+                  onMouseLeave={(e) => { e.preventDefault(); handleStopRecording(); }}
                   onTouchStart={(e) => { e.preventDefault(); handleStartRecording(); }}
-                  onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }}
-                  onTouchCancel={(e) => { e.preventDefault(); stopRecording(); }}
-                  disabled={isTranscribing}
+                  onTouchEnd={(e) => { e.preventDefault(); handleStopRecording(); }}
+                  onTouchCancel={(e) => { e.preventDefault(); handleStopRecording(); }}
                   className={`relative w-20 h-20 rounded-[2rem] flex items-center justify-center transition-all duration-500 ${
                     isRecording
                       ? 'bg-red-500 scale-110 shadow-[0_0_30px_rgba(239,68,68,0.4)]'
-                      : isTranscribing ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#6cb2ff] hover:bg-[#58a2f0] shadow-[0_0_20px_rgba(108,178,255,0.3)] hover:scale-105'
+                      : (isTranscribing)
+                        ? 'bg-gray-400 cursor-wait opacity-50'
+                        : 'bg-[#6cb2ff] hover:bg-[#58a2f0] shadow-[0_0_20px_rgba(108,178,255,0.3)] hover:scale-105'
                   }`}
+                  disabled={isTranscribing}
                 >
                   {isRecording ? <MicOff size={28} className="text-white" /> : <Mic size={28} className="text-[#002442]" />}
                   {isRecording && (
@@ -258,7 +281,7 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
                   )}
                 </button>
                 <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500 dark:text-[#a5abbb] font-black">
-                  {isRecording ? 'Listening...' : 'Hold to speak'}
+                  {isRecording ? 'Listening...' : isTranscribing ? 'Processing...' : 'Hold to speak'}
                 </p>
               </div>
             </motion.div>
