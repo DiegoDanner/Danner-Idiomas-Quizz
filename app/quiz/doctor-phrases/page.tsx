@@ -37,6 +37,13 @@ export default function DoctorPhrasesPage() {
 
   const handleComplete = (id: number) => {
     setCompletedPhrases(prev => new Set(prev).add(id));
+
+    // Auto-transition to results if it's the last card
+    if (currentIndex === doctorPhrases.length - 1) {
+      setTimeout(() => {
+        setStep('results');
+      }, 2500); // Give user time to see the flipped card and success feedback
+    }
   };
 
   const handleNext = () => {
