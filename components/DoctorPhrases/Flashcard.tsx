@@ -24,9 +24,9 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
   const [transcription, setTranscription] = useState('');
   const [voiceFeedback, setVoiceFeedback] = useState('');
   const [feedback, setFeedback] = useState<'success' | 'error' | null>(null);
-  const [hasUserSpoken, setHasUserSpoken] = useState(false);
   const processedBlobRef = useRef<Blob | null>(null);
-  const transcriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const safetyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const recordingLimitRef = useRef<NodeJS.Timeout | null>(null);
   const { isRecording, audioBlob, startRecording, stopRecording, setAudioBlob, prepareStream } = useAudioRecorder();
 
   const playTTS = useCallback(() => {
@@ -41,25 +41,22 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
     window.speechSynthesis.speak(utterance);
   }, [phrase.english]);
 
-  // Pre-warm microphone on mount
   useEffect(() => {
     prepareStream();
     return () => {
-      if (transcriptionTimeoutRef.current) clearTimeout(transcriptionTimeoutRef.current);
+      if (safetyTimeoutRef.current) clearTimeout(safetyTimeoutRef.current);
+      if (recordingLimitRef.current) clearTimeout(recordingLimitRef.current);
     };
   }, [prepareStream]);
 
-  // Reset state when phrase changes
   useEffect(() => {
     setIsFlipped(false);
     setTranscription('');
     setVoiceFeedback('');
     setFeedback(null);
-    setHasUserSpoken(false);
     processedBlobRef.current = null;
     setAudioBlob(null);
 
-    // Auto-play TTS when card appears
     const timer = setTimeout(() => {
       playTTS();
     }, 500);
@@ -73,15 +70,12 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
 
   const getGemini = useCallback(() => {
     const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-    if (!apiKey) {
-      console.warn("NEXT_PUBLIC_GEMINI_API_KEY is not defined.");
-      return null;
-    }
+    if (!apiKey) return null;
     return new GoogleGenAI({ apiKey });
   }, []);
 
   const transcribeAudio = useCallback(async (blob: Blob) => {
-    if (isRecording || processedBlobRef.current === blob) return;
+    if (processedBlobRef.current === blob) return;
     processedBlobRef.current = blob;
 
     const ai = getGemini();
@@ -91,79 +85,56 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
     }
 
     setIsTranscribing(true);
-
-    // Safety timeout: Reset transcribing state after 8 seconds if no result
-    if (transcriptionTimeoutRef.current) clearTimeout(transcriptionTimeoutRef.current);
-    transcriptionTimeoutRef.current = setTimeout(() => {
-      setIsTranscribing(false);
-    }, 8000);
+    if (safetyTimeoutRef.current) clearTimeout(safetyTimeoutRef.current);
+    safetyTimeoutRef.current = setTimeout(() => setIsTranscribing(false), 12000);
 
     try {
       const reader = new FileReader();
+      const readerPromise = new Promise<string>((resolve) => {
+        reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+      });
       reader.readAsDataURL(blob);
-      reader.onloadend = async () => {
-        try {
-          const base64Data = (reader.result as string).split(',')[1];
+      const base64Data = await readerPromise;
 
-          const response = await ai.models.generateContent({
-            model: "gemini-1.5-flash",
-            contents: [
+      const response = await ai.models.generateContent({
+        model: "gemini-1.5-flash",
+        contents: [
+          {
+            role: 'user',
+            parts: [
               {
-                role: 'user',
-                parts: [
-                  {
-                    text: `You are an English pronunciation coach.
-                    Listen to the audio and compare it to the target phrase: "${phrase.english}".
-
-                    Evaluate if the user said the phrase correctly.
-                    CRITICAL: If the audio is silent or contains no recognizable speech, return isMatch: false and transcription: "".
-
-                    Return a JSON object with these fields:
-                    - "transcription": The exact words you heard (empty string if nothing heard).
-                    - "isMatch": Boolean, true ONLY if the user spoke and matched the phrase.
-                    - "feedback": A very short, encouraging tip in English if they missed something (max 10 words).
-
-                    Return ONLY the JSON object.`
-                  },
-                  { inlineData: { mimeType: blob.type, data: base64Data } }
-                ]
-              }
-            ],
-            config: {
-              responseMimeType: "application/json",
-            }
-          });
-
-          const result = JSON.parse(response.text || '{}');
-          const capturedText = (result.transcription || '').trim();
-
-          setTranscription(capturedText);
-          setVoiceFeedback(result.feedback || '');
-
-          const normalize = (text: string) => text.toLowerCase().replace(/[^\w\s]/g, '').trim();
-          const isMatchManual = normalize(capturedText) === normalize(phrase.english);
-
-          if (capturedText !== "" && (result.isMatch === true || isMatchManual) && !isRecording && hasUserSpoken) {
-            setFeedback('success');
-            onComplete();
-            setTimeout(() => setIsFlipped(true), 1000);
-          } else {
-            setFeedback('error');
+                text: `Pronunciation coach: Target phrase "${phrase.english}". Evaluate audio. Return JSON: {"transcription": string, "isMatch": boolean, "feedback": short string}`
+              },
+              { inlineData: { mimeType: blob.type, data: base64Data } }
+            ]
           }
-        } catch (e) {
-          console.error('Processing error:', e);
-          setFeedback('error');
-        } finally {
-          setIsTranscribing(false);
-          if (transcriptionTimeoutRef.current) clearTimeout(transcriptionTimeoutRef.current);
-        }
-      };
-    } catch (error) {
-      console.error('STT Error:', error);
+        ],
+        config: { responseMimeType: "application/json" }
+      });
+
+      const result = JSON.parse(response.text || '{}');
+      const text = (result.transcription || '').trim();
+      setTranscription(text);
+      setVoiceFeedback(result.feedback || '');
+
+      const norm = (t: string) => t.toLowerCase().replace(/[^\w\s]/g, '').trim();
+      const match = norm(text) === norm(phrase.english) || result.isMatch === true;
+
+      if (text !== "" && match) {
+        setFeedback('success');
+        onComplete();
+        setTimeout(() => setIsFlipped(true), 1000);
+      } else {
+        setFeedback('error');
+      }
+    } catch (e) {
+      console.error('STT error:', e);
+      setFeedback('error');
+    } finally {
       setIsTranscribing(false);
-      if (transcriptionTimeoutRef.current) clearTimeout(transcriptionTimeoutRef.current);
+      if (safetyTimeoutRef.current) clearTimeout(safetyTimeoutRef.current);
     }
-  }, [phrase.english, isRecording, getGemini, onComplete, hasUserSpoken]);
+  }, [phrase.english, getGemini, onComplete]);
 
   useEffect(() => {
     if (audioBlob && audioBlob.size > 0 && !isRecording) {
@@ -171,18 +142,17 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
     }
   }, [audioBlob, transcribeAudio, isRecording]);
 
-  const handleStartRecording = () => {
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-    }
+  const handleStart = () => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) window.speechSynthesis.cancel();
     setFeedback(null);
     setTranscription('');
     setVoiceFeedback('');
-    setHasUserSpoken(true);
     startRecording();
+    recordingLimitRef.current = setTimeout(() => stopRecording(), 7000);
   };
 
-  const handleStopRecording = () => {
+  const handleStop = () => {
+    if (recordingLimitRef.current) clearTimeout(recordingLimitRef.current);
     stopRecording();
   };
 
@@ -223,11 +193,7 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
                       <motion.div animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 0.8, delay: 0.4 }} className="w-2.5 h-2.5 bg-[#6cb2ff] rounded-full" />
                     </div>
                   ) : transcription ? (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex flex-col items-center space-y-2"
-                    >
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center space-y-2">
                       <div className={`flex items-center space-x-3 px-6 py-2 rounded-2xl text-sm font-medium backdrop-blur-md ${feedback === 'success' ? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'}`}>
                         {feedback === 'success' ? <Check size={16} /> : <X size={16} />}
                         <span className="italic">&quot;{transcription}&quot;</span>
@@ -255,29 +221,18 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
                   </motion.button>
                 )}
                 <button
-                  onMouseDown={(e) => { e.preventDefault(); handleStartRecording(); }}
-                  onMouseUp={(e) => { e.preventDefault(); handleStopRecording(); }}
-                  onMouseLeave={(e) => { e.preventDefault(); handleStopRecording(); }}
-                  onTouchStart={(e) => { e.preventDefault(); handleStartRecording(); }}
-                  onTouchEnd={(e) => { e.preventDefault(); handleStopRecording(); }}
-                  onTouchCancel={(e) => { e.preventDefault(); handleStopRecording(); }}
-                  className={`relative w-20 h-20 rounded-[2rem] flex items-center justify-center transition-all duration-500 ${
-                    isRecording
-                      ? 'bg-red-500 scale-110 shadow-[0_0_30px_rgba(239,68,68,0.4)]'
-                      : (isTranscribing)
-                        ? 'bg-gray-400 cursor-wait opacity-50'
-                        : 'bg-[#6cb2ff] hover:bg-[#58a2f0] shadow-[0_0_20px_rgba(108,178,255,0.3)] hover:scale-105'
-                  }`}
+                  onMouseDown={(e) => { e.preventDefault(); handleStart(); }}
+                  onMouseUp={(e) => { e.preventDefault(); handleStop(); }}
+                  onMouseLeave={(e) => { e.preventDefault(); handleStop(); }}
+                  onTouchStart={(e) => { e.preventDefault(); handleStart(); }}
+                  onTouchEnd={(e) => { e.preventDefault(); handleStop(); }}
+                  onTouchCancel={(e) => { e.preventDefault(); handleStop(); }}
+                  className={`relative w-20 h-20 rounded-[2rem] flex items-center justify-center transition-all duration-500 ${isRecording ? 'bg-red-500 scale-110 shadow-[0_0_30px_rgba(239,68,68,0.4)]' : isTranscribing ? 'bg-gray-400 cursor-wait opacity-50' : 'bg-[#6cb2ff] hover:bg-[#58a2f0] shadow-[0_0_20px_rgba(108,178,255,0.3)] hover:scale-105'}`}
                   disabled={isTranscribing}
                 >
                   {isRecording ? <MicOff size={28} className="text-white" /> : <Mic size={28} className="text-[#002442]" />}
                   {isRecording && (
-                    <motion.div
-                      initial={{ scale: 1, opacity: 0.5 }}
-                      animate={{ scale: 1.8, opacity: 0 }}
-                      transition={{ repeat: Infinity, duration: 1.2 }}
-                      className="absolute inset-0 bg-red-500 rounded-[2rem]"
-                    />
+                    <motion.div initial={{ scale: 1, opacity: 0.5 }} animate={{ scale: 1.8, opacity: 0 }} transition={{ repeat: Infinity, duration: 1.2 }} className="absolute inset-0 bg-red-500 rounded-[2rem]" />
                   )}
                 </button>
                 <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500 dark:text-[#a5abbb] font-black">
@@ -308,12 +263,7 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
                 <h2 className="text-3xl md:text-4xl font-headline font-bold leading-[1.1] tracking-tight text-[#6cb2ff]">
                   {phrase.portuguese}
                 </h2>
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.3 }}
-                  className="mt-10 flex items-center space-x-3 text-green-600 dark:text-green-400/80 text-sm font-bold uppercase tracking-widest"
-                >
+                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }} className="mt-10 flex items-center space-x-3 text-green-600 dark:text-green-400/80 text-sm font-bold uppercase tracking-widest">
                   <div className="w-8 h-[1px] bg-green-600/30 dark:bg-green-400/30" />
                   <span>Unlocked</span>
                   <div className="w-8 h-[1px] bg-green-600/30 dark:bg-green-400/30" />
@@ -321,19 +271,11 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
               </div>
 
               <div className="w-full flex justify-between items-center pt-6">
-                <button
-                  onClick={onPrevious}
-                  disabled={isFirst}
-                  className={`flex items-center space-x-3 text-sm font-bold uppercase tracking-widest transition-all ${isFirst ? 'text-gray-300 dark:text-gray-700 cursor-not-allowed' : 'text-gray-500 dark:text-[#a5abbb] hover:text-[#6cb2ff]'}`}
-                >
+                <button onClick={onPrevious} disabled={isFirst} className={`flex items-center space-x-3 text-sm font-bold uppercase tracking-widest transition-all ${isFirst ? 'text-gray-300 dark:text-gray-700 cursor-not-allowed' : 'text-gray-500 dark:text-[#a5abbb] hover:text-[#6cb2ff]'}`}>
                   <ChevronLeft size={24} />
                   <span className="hidden sm:inline">Prev</span>
                 </button>
-                <button
-                  onClick={onNext}
-                  disabled={isLast}
-                  className={`flex items-center space-x-3 text-sm font-bold uppercase tracking-widest transition-all ${isLast ? 'text-gray-300 dark:text-gray-700 cursor-not-allowed' : 'text-gray-500 dark:text-[#a5abbb] hover:text-[#6cb2ff]'}`}
-                >
+                <button onClick={onNext} disabled={isLast} className={`flex items-center space-x-3 text-sm font-bold uppercase tracking-widest transition-all ${isLast ? 'text-gray-300 dark:text-gray-700 cursor-not-allowed' : 'text-gray-500 dark:text-[#a5abbb] hover:text-[#6cb2ff]'}`}>
                   <span className="hidden sm:inline">Next</span>
                   <ChevronRight size={24} />
                 </button>
