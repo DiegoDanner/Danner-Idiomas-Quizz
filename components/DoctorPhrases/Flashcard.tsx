@@ -60,24 +60,16 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
     recognition.lang = 'en-US';
 
     recognition.onresult = (event: any) => {
-      let finalTranscript = "";
-      let interimTranscript = "";
-
+      let fullText = "";
+      // Capture EVERYTHING from the beginning of the results array
       for (let i = 0; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          finalTranscript += transcript;
-        } else {
-          interimTranscript += transcript;
-        }
+        fullText += event.results[i][0].transcript;
       }
 
-      if (finalTranscript) {
-        finalTranscriptRef.current = finalTranscript.trim();
-        hasUserSpokenRef.current = true;
-      }
-
-      setTranscription(finalTranscript.trim() || interimTranscript.trim());
+      // Update ref and state immediately with the full accumulated transcript
+      finalTranscriptRef.current = fullText.trim();
+      setTranscription(fullText.trim());
+      hasUserSpokenRef.current = true;
     };
 
     recognition.onend = () => {
@@ -228,7 +220,7 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
                     onClick={onNext}
                     className="flex items-center space-x-2 px-6 py-2 bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-green-500/30 transition-all"
                   >
-                    <span>Proceed to Next</span>
+                    <span>{isLast ? 'Finish Practice' : 'Proceed to Next'}</span>
                     <ChevronRight size={16} />
                   </motion.button>
                 )}
