@@ -20,7 +20,7 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [transcription, setTranscription] = useState('');
-  const [feedback, setFeedback] = useState<'success' | 'error' | null>(null);
+  const [feedback, setFeedback] = useState<'success' | 'almost' | 'error' | null>(null);
 
   const recognitionRef = useRef<any>(null);
   const finalTranscriptRef = useRef('');
@@ -29,21 +29,45 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
   const normalize = (text: string) =>
     text.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
 
+  const removeRepeatedWords = (text: string) => {
+    const words = text.split(" ");
+    const filtered = [];
+    for (let i = 0; i < words.length; i++) {
+      if (words[i] !== words[i - 1]) {
+        filtered.push(words[i]);
+      }
+    }
+    return filtered.join(" ");
+  };
+
   const validateResult = useCallback((spokenText: string) => {
     const expected = phrase.english;
-    const normalizedSpoken = normalize(spokenText);
     const normalizedExpected = normalize(expected);
+    const cleanedSpoken = removeRepeatedWords(normalize(spokenText));
 
-    console.log("FINAL TRANSCRIPT:", spokenText);
-    console.log("EXPECTED:", expected);
+    if (cleanedSpoken === "") return;
 
-    if (normalizedSpoken === "") return;
+    const expectedWords = normalizedExpected.split(" ");
+    const spokenWords = cleanedSpoken.split(" ");
 
-    if (normalizedSpoken === normalizedExpected) {
+    let matches = 0;
+    expectedWords.forEach(word => {
+      if (spokenWords.includes(word)) {
+        matches++;
+      }
+    });
+
+    const score = matches / expectedWords.length;
+    console.log("VALIDATION - Score:", score, "Spoken:", cleanedSpoken, "Expected:", normalizedExpected);
+
+    if (score >= 0.85) {
       setFeedback('success');
       onComplete();
-      // Delay flip for visual feedback
       setTimeout(() => setIsFlipped(true), 1000);
+    } else if (score >= 0.6) {
+      setFeedback('almost');
+      onComplete();
+      setTimeout(() => setIsFlipped(true), 1500);
     } else {
       setFeedback('error');
     }
@@ -201,9 +225,16 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
                     </div>
                   ) : transcription ? (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center space-y-2">
-                      <div className={`flex items-center space-x-3 px-6 py-2 rounded-2xl text-sm font-medium backdrop-blur-md ${feedback === 'success' ? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'}`}>
-                        {feedback === 'success' ? <Check size={16} /> : <X size={16} />}
-                        <span className="italic">&quot;{transcription}&quot;</span>
+                      <div className={`flex items-center space-x-3 px-6 py-2 rounded-2xl text-sm font-medium backdrop-blur-md ${
+                        feedback === 'success' ? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20' :
+                        feedback === 'almost' ? 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20' :
+                        'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'
+                      }`}>
+                        {feedback === 'success' ? <Check size={16} /> : feedback === 'almost' ? <Check size={16} className="opacity-70" /> : <X size={16} />}
+                        <div className="flex flex-col items-start">
+                          {feedback === 'almost' && <span className="text-[10px] font-bold uppercase tracking-tight opacity-70">Almost correct</span>}
+                          <span className="italic">&quot;{transcription}&quot;</span>
+                        </div>
                       </div>
                     </motion.div>
                   ) : (
