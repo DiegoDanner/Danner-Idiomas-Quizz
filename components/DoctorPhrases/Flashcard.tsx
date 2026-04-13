@@ -20,6 +20,7 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [transcription, setTranscription] = useState('');
+  const [finalSpokenText, setFinalSpokenText] = useState("");
   const [feedback, setFeedback] = useState<'success' | 'almost' | 'error' | null>(null);
 
   const recognitionRef = useRef<any>(null);
@@ -59,6 +60,7 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
 
     const score = matches / expectedWords.length;
     console.log("VALIDATION - Score:", score, "Spoken:", cleanedSpoken, "Expected:", normalizedExpected);
+    setFinalSpokenText(cleanedSpoken);
 
     if (score >= 0.85) {
       setFeedback('success');
@@ -143,6 +145,7 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
   useEffect(() => {
     setIsFlipped(false);
     setTranscription('');
+    setFinalSpokenText("");
     setFeedback(null);
     finalTranscriptRef.current = '';
     hasUserSpokenRef.current = false;
@@ -216,7 +219,7 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
                   {phrase.english}
                 </h2>
 
-                <div className="h-16 flex flex-col items-center justify-center w-full">
+                <div className="h-28 flex flex-col items-center justify-center w-full">
                   {isRecording ? (
                     <div className="flex space-x-2">
                       <motion.div animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 0.8 }} className="w-2.5 h-2.5 bg-[#6cb2ff] rounded-full" />
@@ -224,7 +227,7 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
                       <motion.div animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 0.8, delay: 0.4 }} className="w-2.5 h-2.5 bg-[#6cb2ff] rounded-full" />
                     </div>
                   ) : transcription ? (
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center space-y-2">
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center space-y-3 w-full max-w-sm">
                       <div className={`flex items-center space-x-3 px-6 py-2 rounded-2xl text-sm font-medium backdrop-blur-md ${
                         feedback === 'success' ? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20' :
                         feedback === 'almost' ? 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20' :
@@ -233,9 +236,29 @@ export default function Flashcard({ phrase, onNext, onPrevious, isFirst, isLast,
                         {feedback === 'success' ? <Check size={16} /> : feedback === 'almost' ? <Check size={16} className="opacity-70" /> : <X size={16} />}
                         <div className="flex flex-col items-start">
                           {feedback === 'almost' && <span className="text-[10px] font-bold uppercase tracking-tight opacity-70">Almost correct</span>}
-                          <span className="italic">&quot;{transcription}&quot;</span>
+                          <span className="italic line-clamp-1">&quot;{transcription}&quot;</span>
                         </div>
                       </div>
+
+                      {finalSpokenText && (
+                        <div className="w-full bg-gray-100/50 dark:bg-[#1d2636]/50 rounded-xl p-3 text-[10px] space-y-1 text-left border border-gray-200/50 dark:border-white/5">
+                          <div className="flex justify-between items-center opacity-60">
+                            <span className="font-bold uppercase tracking-widest">You said:</span>
+                            <span className="font-mono text-[9px]">{Math.round((phrase.english.split(' ').filter(w => normalize(finalSpokenText).split(' ').includes(normalize(w))).length / phrase.english.split(' ').length) * 100)}% Match</span>
+                          </div>
+                          <p className="font-medium text-gray-700 dark:text-gray-300 leading-relaxed">
+                            {phrase.english.split(' ').map((word, i) => {
+                              const normWord = normalize(word);
+                              const isMatch = normalize(finalSpokenText).split(' ').includes(normWord);
+                              return (
+                                <span key={i} className={isMatch ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400 font-bold underline decoration-red-500/30'}>
+                                  {word}{' '}
+                                </span>
+                              );
+                            })}
+                          </p>
+                        </div>
+                      )}
                     </motion.div>
                   ) : (
                     <p className="text-sm text-gray-500 dark:text-[#a5abbb] font-medium tracking-wide">Read aloud to unlock translation</p>
