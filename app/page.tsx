@@ -14,7 +14,8 @@ import {
   Zap,
   Frown,
   HeartPulse,
-  Calendar
+  Calendar,
+  BookOpen
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import QuizCard from '@/components/QuizCard';
@@ -141,6 +142,16 @@ const QUIZZES = [
     actionText: 'Start Challenge',
     actionColor: 'text-orange-500',
     href: '/quiz/months-of-the-year',
+  },
+  {
+    title: 'Sentences to Practice',
+    description: 'Master common English sentences with interactive flashcards. Expand your vocabulary and improve your fluency.',
+    icon: BookOpen,
+    iconColor: 'text-emerald-500',
+    iconBg: 'bg-emerald-500/10',
+    actionText: 'Open Flashcards',
+    actionColor: 'text-emerald-500',
+    href: '/quiz/practice-sentences',
   },
 ];
 
