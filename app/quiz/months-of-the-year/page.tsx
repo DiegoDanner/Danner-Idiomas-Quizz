@@ -22,19 +22,17 @@ const INITIAL_OFFSET = 400;
 function Cube({ month, positionY, isCurrent }: { month: string, positionY: number, isCurrent: boolean }) {
   return (
     <div
-      className="absolute left-1/2 -translate-x-1/2 flex items-end justify-center transition-opacity duration-500"
+      className="absolute left-1/2 -translate-x-1/2 flex items-end justify-center transition-opacity duration-500 w-[280px] sm:w-[350px] h-[160px] sm:h-[200px]"
       style={{
         bottom: `${positionY}px`,
-        width: '350px',
-        height: '200px',
         transformStyle: 'preserve-3d',
         transform: 'rotateX(-90deg)', // Stand up perfectly straight relative to the road
         transformOrigin: 'bottom center',
         opacity: isCurrent ? 1 : 0.6,
       }}
     >
-      <div className={`relative w-full h-[160px] flex items-center justify-center transition-all duration-500 ${isCurrent ? 'bg-white/20 shadow-[0_20px_60px_rgba(255,215,0,0.4)]' : 'bg-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)]'} backdrop-blur-md border-t-8 border-b-8 border-yellow-500`}>
-        <span className="text-white font-black text-6xl tracking-widest drop-shadow-[0_5px_5px_rgba(0,0,0,1)]">
+      <div className={`relative w-full h-[120px] sm:h-[160px] flex items-center justify-center transition-all duration-500 ${isCurrent ? 'bg-white/20 shadow-[0_20px_60px_rgba(255,215,0,0.4)]' : 'bg-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)]'} backdrop-blur-md border-t-4 sm:border-t-8 border-b-4 sm:border-b-8 border-yellow-500 px-4`}>
+        <span className="text-white font-black text-3xl sm:text-6xl tracking-widest drop-shadow-[0_5px_5px_rgba(0,0,0,1)] text-center break-words">
           {month}
         </span>
       </div>
@@ -109,20 +107,24 @@ export default function MonthsOfTheYearPage() {
 
     recognition.onend = () => {
       if (isListening && currentIndexRef.current < MONTHS.length) {
+        setTimeout(() => {
+          try {
+            recognition.start();
+          } catch {
+            // Ignore errors
+          }
+        }, 200);
+      }
+    };
+
+    if (isListening) {
+      setTimeout(() => {
         try {
           recognition.start();
         } catch {
           // Ignore errors
         }
-      }
-    };
-
-    if (isListening) {
-      try {
-        recognition.start();
-      } catch {
-        // Ignore errors
-      }
+      }, 200);
     }
 
     return () => {
@@ -229,16 +231,16 @@ export default function MonthsOfTheYearPage() {
 
               {/* UI Overlay */}
               {!isFinished && (
-                <div className="absolute top-32 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center w-full px-4">
-                  <div className="bg-black/60 backdrop-blur-xl px-8 py-4 rounded-full border border-white/10 flex items-center gap-6 shadow-2xl min-w-[300px] justify-center">
-                    <div className={`p-3 rounded-full transition-colors ${isListening ? 'bg-red-500 animate-pulse shadow-[0_0_20px_rgba(239,68,68,0.6)]' : 'bg-zinc-600'}`}>
-                      {isListening ? <Mic className="w-6 h-6 text-white" /> : <MicOff className="w-6 h-6 text-white" />}
+                <div className="absolute top-24 sm:top-32 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center w-full px-4 max-w-full">
+                  <div className="bg-black/60 backdrop-blur-xl px-4 sm:px-8 py-3 sm:py-4 rounded-full border border-white/10 flex items-center gap-3 sm:gap-6 shadow-2xl min-w-0 sm:min-w-[300px] justify-center w-full sm:w-auto">
+                    <div className={`p-2 sm:p-3 rounded-full transition-colors shrink-0 ${isListening ? 'bg-red-500 animate-pulse shadow-[0_0_20px_rgba(239,68,68,0.6)]' : 'bg-zinc-600'}`}>
+                      {isListening ? <Mic className="w-4 h-4 sm:w-6 sm:h-6 text-white" /> : <MicOff className="w-4 h-4 sm:w-6 sm:h-6 text-white" />}
                     </div>
-                    <div className="text-white font-mono text-xl min-w-[200px] text-center truncate">
-                      {transcript || <span className="text-zinc-500">Listening...</span>}
+                    <div className="text-white font-mono text-sm sm:text-xl min-w-0 flex-1 sm:min-w-[200px] text-center truncate px-2">
+                      {transcript || <span className="text-zinc-500 italic">Listening...</span>}
                     </div>
                   </div>
-                  <div className="mt-6 text-yellow-400 font-black text-4xl drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] tracking-wide font-headline">
+                  <div className="mt-4 sm:mt-6 text-yellow-400 font-black text-2xl sm:text-4xl drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] tracking-wide font-headline text-center">
                     Say: {targetMonth}
                   </div>
                 </div>
