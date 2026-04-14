@@ -114,7 +114,7 @@ export default function PracticeFlashcard({ sentence, startLanguage }: PracticeF
     };
   }, [initRecognition]);
 
-  const handleStartRecording = (e: React.MouseEvent | React.TouchEvent) => {
+  const handleStartSentenceRecording = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel();
@@ -134,7 +134,7 @@ export default function PracticeFlashcard({ sentence, startLanguage }: PracticeF
     }
   };
 
-  const handleStopRecording = (e: React.MouseEvent | React.TouchEvent) => {
+  const handleStopSentenceRecording = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
     try {
       recognitionRef.current?.stop();
@@ -171,33 +171,6 @@ export default function PracticeFlashcard({ sentence, startLanguage }: PracticeF
   const backText = startLanguage === "english" ? sentence.portuguese : sentence.english;
   const showAudioOnFront = startLanguage === "english";
   const showAudioOnBack = startLanguage === "portuguese";
-
-  const handleStartRecording = () => {
-    setFeedback(null);
-    setTranscription('');
-    setFinalSpokenText("");
-    finalTranscriptRef.current = '';
-    hasUserSpokenRef.current = true;
-    setIsRecording(true);
-    try {
-      recognitionRef.current?.start();
-    } catch {
-      initRecognition();
-      setTimeout(() => {
-        try { recognitionRef.current?.start(); } catch {
-          // ignore
-        }
-      }, 100);
-    }
-  };
-
-  const handleStopRecording = () => {
-    try {
-      recognitionRef.current?.stop();
-    } catch {
-      // ignore
-    }
-  };
 
   // Reset flip state when sentence changes
   useEffect(() => {
@@ -272,12 +245,12 @@ export default function PracticeFlashcard({ sentence, startLanguage }: PracticeF
 
             <div className="flex flex-col items-center">
               <button
-                onMouseDown={handleStartRecording}
-                onMouseUp={handleStopRecording}
-                onMouseLeave={handleStopRecording}
-                onTouchStart={handleStartRecording}
-                onTouchEnd={handleStopRecording}
-                onTouchCancel={handleStopRecording}
+                onMouseDown={handleStartSentenceRecording}
+                onMouseUp={handleStopSentenceRecording}
+                onMouseLeave={handleStopSentenceRecording}
+                onTouchStart={handleStartSentenceRecording}
+                onTouchEnd={handleStopSentenceRecording}
+                onTouchCancel={handleStopSentenceRecording}
                 onClick={(e) => e.stopPropagation()}
                 className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 ${isRecording ? 'bg-red-500 scale-110 shadow-lg shadow-red-500/20' : 'bg-[#6cb2ff]/10 text-[#6cb2ff] hover:bg-[#6cb2ff]/20'}`}
               >
