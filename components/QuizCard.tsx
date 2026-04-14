@@ -62,13 +62,9 @@ export default function QuizCard({
 
   const handleClick = () => {
     if (href) {
-      if (skipAuth) {
+      performAction(() => {
         router.push(href);
-      } else {
-        performAction(() => {
-          router.push(href);
-        });
-      }
+      }, skipAuth);
     }
   };
 
