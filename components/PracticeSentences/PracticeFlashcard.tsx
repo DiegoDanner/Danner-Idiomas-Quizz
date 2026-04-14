@@ -63,10 +63,10 @@ export default function PracticeFlashcard({ sentence, startLanguage }: PracticeF
 
     if (score >= 0.85) {
       setFeedback('success');
-      setTimeout(() => setIsFlipped(true), 1000);
+      setTimeout(() => setIsFlipped(true), 1200);
     } else if (score >= 0.6) {
       setFeedback('almost');
-      setTimeout(() => setIsFlipped(true), 1500);
+      setTimeout(() => setIsFlipped(true), 1800);
     } else {
       setFeedback('error');
     }
@@ -259,12 +259,12 @@ export default function PracticeFlashcard({ sentence, startLanguage }: PracticeF
               </span>
             </div>
           </div>
-          <div className="flex-1 p-8 flex flex-col items-center justify-center text-center relative overflow-hidden">
-            <h2 className="text-2xl md:text-3xl font-headline font-bold text-gray-900 dark:text-[#e5ebfc] leading-tight mb-4">
+          <div className="flex-1 p-6 flex flex-col items-center justify-start text-center relative overflow-hidden">
+            <h2 className="text-xl md:text-2xl font-headline font-bold text-gray-900 dark:text-[#e5ebfc] leading-tight mb-2 mt-2">
               {frontText}
             </h2>
 
-            <div className="h-32 flex flex-col items-center justify-center w-full">
+            <div className="h-28 flex flex-col items-center justify-center w-full">
               {isRecording ? (
                 <div className="flex space-x-2">
                   <motion.div animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 0.8 }} className="w-2.5 h-2.5 bg-[#6cb2ff] rounded-full" />
@@ -272,26 +272,26 @@ export default function PracticeFlashcard({ sentence, startLanguage }: PracticeF
                   <motion.div animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 0.8, delay: 0.4 }} className="w-2.5 h-2.5 bg-[#6cb2ff] rounded-full" />
                 </div>
               ) : transcription ? (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center space-y-3 w-full max-w-sm">
-                  <div className={`flex items-center space-x-3 px-6 py-2 rounded-2xl text-sm font-medium backdrop-blur-md ${
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center space-y-2 w-full max-w-sm">
+                  <div className={`flex items-center space-x-3 px-4 py-1.5 rounded-2xl text-xs font-medium backdrop-blur-md ${
                     feedback === 'success' ? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20' :
                     feedback === 'almost' ? 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20' :
                     'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'
                   }`}>
-                    {feedback === 'success' ? <Check size={16} /> : feedback === 'almost' ? <Check size={16} className="opacity-70" /> : <X size={16} />}
+                    {feedback === 'success' ? <Check size={14} /> : feedback === 'almost' ? <Check size={14} className="opacity-70" /> : <X size={14} />}
                     <div className="flex flex-col items-start">
-                      {feedback === 'almost' && <span className="text-[10px] font-bold uppercase tracking-tight opacity-70">Almost correct</span>}
+                      {feedback === 'almost' && <span className="text-[9px] font-bold uppercase tracking-tight opacity-70">Almost correct</span>}
                       <span className="italic line-clamp-1">&quot;{transcription}&quot;</span>
                     </div>
                   </div>
 
                   {finalSpokenText && (
-                    <div className="w-full bg-gray-100/50 dark:bg-[#1d2636]/50 rounded-xl p-3 text-[10px] space-y-1 text-left border border-gray-200/50 dark:border-white/5">
+                    <div className="w-full bg-gray-100/50 dark:bg-[#1d2636]/50 rounded-xl p-2 px-3 text-[9px] space-y-1 text-left border border-gray-200/50 dark:border-white/5">
                       <div className="flex justify-between items-center opacity-60">
                         <span className="font-bold uppercase tracking-widest">You said:</span>
-                        <span className="font-mono text-[9px]">{Math.round((sentence.english.split(' ').filter(w => normalize(finalSpokenText).split(' ').includes(normalize(w))).length / sentence.english.split(' ').length) * 100)}% Match</span>
+                        <span className="font-mono text-[8px]">{Math.round((sentence.english.split(' ').filter(w => normalize(finalSpokenText).split(' ').includes(normalize(w))).length / sentence.english.split(' ').length) * 100)}% Match</span>
                       </div>
-                      <p className="font-medium text-gray-700 dark:text-gray-300 leading-relaxed">
+                      <p className="font-medium text-gray-700 dark:text-gray-300 leading-tight">
                         {sentence.english.split(' ').map((word, i) => {
                           const normWord = normalize(word);
                           const isMatch = normalize(finalSpokenText).split(' ').includes(normWord);
@@ -306,7 +306,7 @@ export default function PracticeFlashcard({ sentence, startLanguage }: PracticeF
                   )}
                 </motion.div>
               ) : (
-                <p className="text-sm text-gray-500 dark:text-[#a5abbb] font-medium tracking-wide">Read aloud to unlock translation</p>
+                <p className="text-xs text-gray-500 dark:text-[#a5abbb] font-medium tracking-wide">Read aloud to unlock translation</p>
               )}
             </div>
 
