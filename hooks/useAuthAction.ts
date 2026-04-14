@@ -10,13 +10,12 @@ export function useAuthAction() {
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   const performAction = (action: () => void) => {
-    // If user is logged in, perform the action.
-    // If not, perform the action anyway for this sandbox environment.
-    // This allows verification without having to set up Supabase/Auth.
-    if (user || process.env.NODE_ENV === 'development') {
+    if (user) {
       action();
     } else {
       setShowAuthModal(true);
+      // Wait a bit then redirect to login, or just show the modal
+      // For a better UX, let's just redirect to login so they can sign in
       setTimeout(() => {
         router.push('/login');
       }, 1500);

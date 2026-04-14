@@ -13,9 +13,7 @@ import {
   HelpCircle, 
   Zap,
   Frown,
-  HeartPulse,
-  Calendar,
-  BookOpen
+  HeartPulse
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import QuizCard from '@/components/QuizCard';
@@ -132,26 +130,6 @@ const QUIZZES = [
     actionText: 'Start Practice',
     actionColor: 'text-red-500',
     href: '/quiz/doctor-phrases',
-  },
-  {
-    title: 'Months of the Year',
-    description: 'Master the months of the year in English with our immersive 3D road challenge. Practice your pronunciation and speed.',
-    icon: Calendar,
-    iconColor: 'text-orange-500',
-    iconBg: 'bg-orange-500/10',
-    actionText: 'Start Challenge',
-    actionColor: 'text-orange-500',
-    href: '/quiz/months-of-the-year',
-  },
-  {
-    title: 'Sentences to Practice',
-    description: 'Master common English sentences with interactive flashcards. Expand your vocabulary and improve your fluency.',
-    icon: BookOpen,
-    iconColor: 'text-emerald-500',
-    iconBg: 'bg-emerald-500/10',
-    actionText: 'Open Flashcards',
-    actionColor: 'text-emerald-500',
-    href: '/quiz/practice-sentences',
   },
 ];
 
