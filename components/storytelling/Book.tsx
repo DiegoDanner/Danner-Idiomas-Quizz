@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 interface BookProps {
   pages: PageData[];
   title: string;
-  onWordClick: (id: string) => void;
+  onWordClick: (_id: string) => void;
   glossary: Record<string, GlossaryWord>;
 }
 
@@ -126,16 +126,12 @@ export default function Book({ pages, title, onWordClick, glossary }: BookProps)
               >
                 <div className="absolute inset-0 bg-gradient-to-l from-black/5 to-transparent w-8 right-0 pointer-events-none" />
                 {sheet.isBackCover && (
-                  <div className="w-full h-full flex items-center justify-center p-8">
-                    <div className="w-16 h-16 rounded-full bg-black/10 dark:bg-white/5"></div>
+                  <div className="w-full h-full flex flex-col items-center justify-center p-8">
+                    <p className="text-gray-400 dark:text-[#a5abbb] font-serif italic text-xl">The End</p>
+                    <div className="w-16 h-1 mt-4 bg-[#d7ccc8]/30 rounded-full" />
                   </div>
                 )}
                 {sheet.back && <Page page={sheet.back} onWordClick={onWordClick} isLeftPage={true} glossary={glossary} />}
-                {!sheet.back && !sheet.isBackCover && (
-                  <div className="w-full h-full flex items-center justify-center p-8">
-                    <p className="text-gray-400 font-serif italic">End of Story</p>
-                  </div>
-                )}
               </div>
             </motion.div>
           );
