@@ -6,7 +6,7 @@ import { GlossaryWord } from '@/lib/stories';
 interface InteractiveWordProps {
   wordId: string;
   text: string;
-  onWordClick: (id: string) => void;
+  onWordClick: (_id: string) => void;
   glossary: Record<string, GlossaryWord>;
 }
 

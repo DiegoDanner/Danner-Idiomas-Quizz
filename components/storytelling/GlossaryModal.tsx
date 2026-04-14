@@ -8,7 +8,7 @@ import { GoogleGenAI, Modality } from "@google/genai";
 interface GlossaryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onWordClick: (id: string) => void;
+  onWordClick: (_id: string) => void;
   glossary: Record<string, GlossaryWord>;
 }
 

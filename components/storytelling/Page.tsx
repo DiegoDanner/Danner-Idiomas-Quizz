@@ -9,7 +9,7 @@ import { GoogleGenAI, Modality } from "@google/genai";
 
 interface PageProps {
   page: PageData;
-  onWordClick: (id: string) => void;
+  onWordClick: (_id: string) => void;
   isLeftPage?: boolean;
   glossary: Record<string, GlossaryWord>;
 }
