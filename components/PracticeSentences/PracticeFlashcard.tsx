@@ -172,6 +172,33 @@ export default function PracticeFlashcard({ sentence, startLanguage }: PracticeF
   const showAudioOnFront = startLanguage === "english";
   const showAudioOnBack = startLanguage === "portuguese";
 
+  const handleStartRecording = () => {
+    setFeedback(null);
+    setTranscription('');
+    setFinalSpokenText("");
+    finalTranscriptRef.current = '';
+    hasUserSpokenRef.current = true;
+    setIsRecording(true);
+    try {
+      recognitionRef.current?.start();
+    } catch {
+      initRecognition();
+      setTimeout(() => {
+        try { recognitionRef.current?.start(); } catch {
+          // ignore
+        }
+      }, 100);
+    }
+  };
+
+  const handleStopRecording = () => {
+    try {
+      recognitionRef.current?.stop();
+    } catch {
+      // ignore
+    }
+  };
+
   // Reset flip state when sentence changes
   useEffect(() => {
     setIsFlipped(false);
