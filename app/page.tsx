@@ -13,7 +13,8 @@ import {
   HelpCircle, 
   Zap,
   Frown,
-  HeartPulse
+  HeartPulse,
+  Book
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import QuizCard from '@/components/QuizCard';
@@ -130,6 +131,16 @@ const QUIZZES = [
     actionText: 'Start Practice',
     actionColor: 'text-red-500',
     href: '/quiz/doctor-phrases',
+  },
+  {
+    title: 'Storytelling Library',
+    description: 'Immerse yourself in interactive books. Master vocabulary and comprehension through beautifully illustrated stories.',
+    icon: Book,
+    iconColor: 'text-amber-500',
+    iconBg: 'bg-amber-500/10',
+    actionText: 'Browse Stories',
+    actionColor: 'text-amber-500',
+    href: '/storytelling',
   },
 ];
 
