@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion } from 'motion/react';
-import { Volume2, Loader2, RotateCcw } from 'lucide-react';
+import { Volume2, Loader2, RotateCcw, Mic, MicOff, Check, X } from 'lucide-react';
 import Image from 'next/image';
 import { GoogleGenAI, Modality } from "@google/genai";
 import { PracticeSentence } from '@/lib/practice-sentences-data';
@@ -17,6 +17,106 @@ export default function PracticeFlashcard({ sentence, startLanguage }: PracticeF
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
+
+  const [isRecording, setIsRecording] = useState(false);
+  const [transcription, setTranscription] = useState('');
+  const [finalSpokenText, setFinalSpokenText] = useState("");
+  const [feedback, setFeedback] = useState<'success' | 'almost' | 'error' | null>(null);
+
+  const recognitionRef = useRef<any>(null);
+  const finalTranscriptRef = useRef('');
+  const hasUserSpokenRef = useRef(false);
+
+  const normalize = (text: string) =>
+    text.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
+
+  const removeRepeatedWords = (text: string) => {
+    const words = text.split(" ");
+    const filtered = [];
+    for (let i = 0; i < words.length; i++) {
+      if (words[i] !== words[i - 1]) {
+        filtered.push(words[i]);
+      }
+    }
+    return filtered.join(" ");
+  };
+
+  const validateResult = useCallback((spokenText: string) => {
+    const expected = sentence.english;
+    const normalizedExpected = normalize(expected);
+    const cleanedSpoken = removeRepeatedWords(normalize(spokenText));
+
+    if (cleanedSpoken === "") return;
+
+    const expectedWords = normalizedExpected.split(" ");
+    const spokenWords = cleanedSpoken.split(" ");
+
+    let matches = 0;
+    expectedWords.forEach(word => {
+      if (spokenWords.includes(word)) {
+        matches++;
+      }
+    });
+
+    const score = matches / expectedWords.length;
+    setFinalSpokenText(cleanedSpoken);
+
+    if (score >= 0.85) {
+      setFeedback('success');
+      setTimeout(() => setIsFlipped(true), 1000);
+    } else if (score >= 0.6) {
+      setFeedback('almost');
+      setTimeout(() => setIsFlipped(true), 1500);
+    } else {
+      setFeedback('error');
+    }
+  }, [sentence.english]);
+
+  const initRecognition = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onresult = (event: any) => {
+      let fullText = "";
+      for (let i = 0; i < event.results.length; i++) {
+        fullText += event.results[i][0].transcript;
+      }
+      finalTranscriptRef.current = fullText.trim();
+      setTranscription(fullText.trim());
+      hasUserSpokenRef.current = true;
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+      if (finalTranscriptRef.current && hasUserSpokenRef.current) {
+        validateResult(finalTranscriptRef.current);
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      if (event.error !== 'no-speech') {
+        setFeedback('error');
+      }
+      setIsRecording(false);
+    };
+
+    recognitionRef.current = recognition;
+  }, [validateResult]);
+
+  useEffect(() => {
+    initRecognition();
+    return () => {
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch {}
+      }
+    };
+  }, [initRecognition]);
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
@@ -96,9 +196,41 @@ export default function PracticeFlashcard({ sentence, startLanguage }: PracticeF
   const showAudioOnFront = startLanguage === "english";
   const showAudioOnBack = startLanguage === "portuguese";
 
+  const handleStartRecording = () => {
+    setFeedback(null);
+    setTranscription('');
+    setFinalSpokenText("");
+    finalTranscriptRef.current = '';
+    hasUserSpokenRef.current = true;
+    setIsRecording(true);
+    try {
+      recognitionRef.current?.start();
+    } catch {
+      initRecognition();
+      setTimeout(() => {
+        try { recognitionRef.current?.start(); } catch {
+          // ignore
+        }
+      }, 100);
+    }
+  };
+
+  const handleStopRecording = () => {
+    try {
+      recognitionRef.current?.stop();
+    } catch {
+      // ignore
+    }
+  };
+
   // Reset flip state when sentence changes
   useEffect(() => {
     setIsFlipped(false);
+    setTranscription('');
+    setFinalSpokenText("");
+    setFeedback(null);
+    finalTranscriptRef.current = '';
+    hasUserSpokenRef.current = false;
   }, [sentence.id]);
 
   return (
@@ -127,23 +259,87 @@ export default function PracticeFlashcard({ sentence, startLanguage }: PracticeF
               </span>
             </div>
           </div>
-          <div className="flex-1 p-8 flex flex-col items-center justify-center text-center relative">
-            <h2 className="text-2xl md:text-3xl font-headline font-bold text-gray-900 dark:text-[#e5ebfc] leading-tight">
+          <div className="flex-1 p-8 flex flex-col items-center justify-center text-center relative overflow-hidden">
+            <h2 className="text-2xl md:text-3xl font-headline font-bold text-gray-900 dark:text-[#e5ebfc] leading-tight mb-4">
               {frontText}
             </h2>
-            {showAudioOnFront && (
-              <button
-                onClick={playAudio}
-                disabled={isLoadingAudio || isPlaying}
-                className="absolute bottom-6 right-6 p-3 rounded-2xl bg-[#6cb2ff]/10 text-[#6cb2ff] hover:bg-[#6cb2ff]/20 transition-all disabled:opacity-50"
-                aria-label="Play audio"
-              >
-                {isLoadingAudio ? <Loader2 className="w-6 h-6 animate-spin" /> : <Volume2 className={`w-6 h-6 ${isPlaying ? 'animate-pulse' : ''}`} />}
-              </button>
-            )}
-            <p className="absolute bottom-6 left-8 text-[10px] uppercase tracking-[0.2em] text-gray-400 font-bold">
-              Tap to Flip
-            </p>
+
+            <div className="h-32 flex flex-col items-center justify-center w-full">
+              {isRecording ? (
+                <div className="flex space-x-2">
+                  <motion.div animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 0.8 }} className="w-2.5 h-2.5 bg-[#6cb2ff] rounded-full" />
+                  <motion.div animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 0.8, delay: 0.2 }} className="w-2.5 h-2.5 bg-[#6cb2ff] rounded-full" />
+                  <motion.div animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 0.8, delay: 0.4 }} className="w-2.5 h-2.5 bg-[#6cb2ff] rounded-full" />
+                </div>
+              ) : transcription ? (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center space-y-3 w-full max-w-sm">
+                  <div className={`flex items-center space-x-3 px-6 py-2 rounded-2xl text-sm font-medium backdrop-blur-md ${
+                    feedback === 'success' ? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20' :
+                    feedback === 'almost' ? 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20' :
+                    'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'
+                  }`}>
+                    {feedback === 'success' ? <Check size={16} /> : feedback === 'almost' ? <Check size={16} className="opacity-70" /> : <X size={16} />}
+                    <div className="flex flex-col items-start">
+                      {feedback === 'almost' && <span className="text-[10px] font-bold uppercase tracking-tight opacity-70">Almost correct</span>}
+                      <span className="italic line-clamp-1">&quot;{transcription}&quot;</span>
+                    </div>
+                  </div>
+
+                  {finalSpokenText && (
+                    <div className="w-full bg-gray-100/50 dark:bg-[#1d2636]/50 rounded-xl p-3 text-[10px] space-y-1 text-left border border-gray-200/50 dark:border-white/5">
+                      <div className="flex justify-between items-center opacity-60">
+                        <span className="font-bold uppercase tracking-widest">You said:</span>
+                        <span className="font-mono text-[9px]">{Math.round((sentence.english.split(' ').filter(w => normalize(finalSpokenText).split(' ').includes(normalize(w))).length / sentence.english.split(' ').length) * 100)}% Match</span>
+                      </div>
+                      <p className="font-medium text-gray-700 dark:text-gray-300 leading-relaxed">
+                        {sentence.english.split(' ').map((word, i) => {
+                          const normWord = normalize(word);
+                          const isMatch = normalize(finalSpokenText).split(' ').includes(normWord);
+                          return (
+                            <span key={i} className={isMatch ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400 font-bold underline decoration-red-500/30'}>
+                              {word}{' '}
+                            </span>
+                          );
+                        })}
+                      </p>
+                    </div>
+                  )}
+                </motion.div>
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-[#a5abbb] font-medium tracking-wide">Read aloud to unlock translation</p>
+              )}
+            </div>
+
+            <div className="absolute bottom-6 left-0 right-0 px-8 flex justify-between items-center">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-gray-400 font-bold">
+                Tap to Flip
+              </p>
+
+              <div className="flex gap-2">
+                {showAudioOnFront && (
+                  <button
+                    onClick={playAudio}
+                    disabled={isLoadingAudio || isPlaying || isRecording}
+                    className="p-3 rounded-2xl bg-[#6cb2ff]/10 text-[#6cb2ff] hover:bg-[#6cb2ff]/20 transition-all disabled:opacity-30"
+                    aria-label="Play audio"
+                  >
+                    {isLoadingAudio ? <Loader2 className="w-5 h-5 animate-spin" /> : <Volume2 className={`w-5 h-5 ${isPlaying ? 'animate-pulse' : ''}`} />}
+                  </button>
+                )}
+                <button
+                  onMouseDown={(e) => { e.stopPropagation(); handleStartRecording(); }}
+                  onMouseUp={(e) => { e.stopPropagation(); handleStopRecording(); }}
+                  onMouseLeave={(e) => { e.stopPropagation(); handleStopRecording(); }}
+                  onTouchStart={(e) => { e.stopPropagation(); handleStartRecording(); }}
+                  onTouchEnd={(e) => { e.stopPropagation(); handleStopRecording(); }}
+                  onTouchCancel={(e) => { e.stopPropagation(); handleStopRecording(); }}
+                  onClick={(e) => e.stopPropagation()}
+                  className={`p-3 rounded-2xl transition-all duration-300 ${isRecording ? 'bg-red-500 text-white scale-110 shadow-lg' : 'bg-[#6cb2ff]/10 text-[#6cb2ff] hover:bg-[#6cb2ff]/20'}`}
+                >
+                  {isRecording ? <MicOff size={20} /> : <Mic size={20} />}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
