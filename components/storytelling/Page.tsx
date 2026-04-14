@@ -12,9 +12,10 @@ interface PageProps {
   onWordClick: (_id: string) => void;
   isLeftPage?: boolean;
   glossary: Record<string, GlossaryWord>;
+  displayType?: 'image' | 'text';
 }
 
-export default function Page({ page, onWordClick, isLeftPage, glossary }: PageProps) {
+export default function Page({ page, onWordClick, isLeftPage, glossary, displayType }: PageProps) {
   const [imgError, setImgError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -81,68 +82,72 @@ export default function Page({ page, onWordClick, isLeftPage, glossary }: PagePr
     source.start(0);
   };
 
+  if (displayType === 'image') {
+    return (
+      <div className="w-full h-full relative bg-[#f4f1ea] dark:bg-[#121a28]">
+        {isLoading && (
+          <div className="absolute inset-0 animate-pulse bg-[#e2d9c8] dark:bg-[#1d2636]"></div>
+        )}
+        <Image
+          src={imgSrc}
+          alt={page.imageAlt}
+          fill
+          className={`object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+          sizes="(max-width: 768px) 100vw, 50vw"
+          priority
+          onLoad={() => setIsLoading(false)}
+          onError={() => {
+            setImgError(true);
+            setIsLoading(false);
+          }}
+        />
+        <div className={`absolute bottom-4 ${isLeftPage ? 'left-6' : 'right-6'} text-white font-serif text-xs md:text-sm drop-shadow-md`}>
+          {page.id}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className="flex flex-col h-full relative"
-      style={{ overflow: 'hidden', padding: '24px', boxSizing: 'border-box' }}
+      style={{ overflow: 'hidden', padding: '48px', boxSizing: 'border-box' }}
     >
-      <div className="flex-1 flex flex-col h-full">
-        <div className="relative w-full h-[45%] min-h-[120px] mb-4 rounded-sm overflow-hidden shadow-sm border border-black/5 shrink-0 bg-[#f4f1ea] dark:bg-[#121a28]">
-          {isLoading && (
-            <div className="absolute inset-0 animate-pulse bg-[#e2d9c8] dark:bg-[#1d2636]"></div>
+      <div className="flex-1 flex flex-col justify-center relative">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            speak(page.rawText);
+          }}
+          className="absolute -top-12 right-0 p-2 text-gray-400 hover:text-[#8b5a2b] dark:hover:text-[#6cb2ff] transition-colors z-10"
+          aria-label="Read page aloud"
+          disabled={isTTSSearching}
+        >
+          {isTTSSearching ? (
+            <Loader2 className="w-6 h-6 animate-spin" />
+          ) : (
+            <Volume2 className={`w-6 h-6 ${isSpeaking ? 'animate-pulse' : ''}`} />
           )}
-          <Image
-            key={page.imageUrl}
-            src={imgSrc}
-            alt={page.imageAlt}
-            fill
-            className={`object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
-            sizes="(max-width: 768px) 100vw, 50vw"
-            priority
-            onLoad={() => setIsLoading(false)}
-            onError={() => {
-              setImgError(true);
-              setIsLoading(false);
-            }}
-          />
-        </div>
+        </button>
 
-        <div className="flex-1 flex flex-col relative mt-2 pb-6">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              speak(page.rawText);
-            }}
-            className="absolute -top-8 right-0 p-1.5 text-gray-400 hover:text-[#8b5a2b] dark:hover:text-[#6cb2ff] transition-colors z-10"
-            aria-label="Read page aloud"
-            disabled={isTTSSearching}
-          >
-            {isTTSSearching ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Volume2 className={`w-5 h-5 ${isSpeaking ? 'animate-pulse' : ''}`} />
-            )}
-          </button>
-
-          <div
-            className="text-sm sm:text-base md:text-lg text-gray-800 dark:text-[#e5ebfc] font-serif text-justify"
-            style={{ wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: 1.6 }}
-          >
-            {page.content.map((segment, index) => {
-              if (segment.isWord && segment.wordId) {
-                return (
-                  <InteractiveWord
-                    key={index}
-                    wordId={segment.wordId}
-                    text={segment.text}
-                    onWordClick={onWordClick}
-                    glossary={glossary}
-                  />
-                );
-              }
-              return <span key={index}>{segment.text}</span>;
-            })}
-          </div>
+        <div
+          className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-800 dark:text-[#e5ebfc] font-serif leading-relaxed"
+          style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}
+        >
+          {page.content.map((segment, index) => {
+            if (segment.isWord && segment.wordId) {
+              return (
+                <InteractiveWord
+                  key={index}
+                  wordId={segment.wordId}
+                  text={segment.text}
+                  onWordClick={onWordClick}
+                  glossary={glossary}
+                />
+              );
+            }
+            return <span key={index}>{segment.text}</span>;
+          })}
         </div>
       </div>
 

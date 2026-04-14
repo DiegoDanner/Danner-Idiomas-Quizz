@@ -17,6 +17,7 @@ interface QuizCardProps {
   actionColor: string;
   isHighlight?: boolean;
   href?: string;
+  skipAuth?: boolean;
 }
 
 export default function QuizCard({
@@ -29,6 +30,7 @@ export default function QuizCard({
   actionColor,
   isHighlight = false,
   href,
+  skipAuth = false,
 }: QuizCardProps) {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -60,9 +62,13 @@ export default function QuizCard({
 
   const handleClick = () => {
     if (href) {
-      performAction(() => {
+      if (skipAuth) {
         router.push(href);
-      });
+      } else {
+        performAction(() => {
+          router.push(href);
+        });
+      }
     }
   };
 

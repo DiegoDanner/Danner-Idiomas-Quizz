@@ -63,6 +63,7 @@ export default function StorytellingLibrary() {
                   actionText="Read Story"
                   actionColor="text-amber-500"
                   href={`/storytelling/${story.id}`}
+                  skipAuth={true}
                 />
               ))}
             </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PageData, GlossaryWord } from '@/lib/stories';
 import Page from './Page';
 import { motion } from 'framer-motion';
@@ -10,34 +10,52 @@ interface BookProps {
   title: string;
   onWordClick: (_id: string) => void;
   glossary: Record<string, GlossaryWord>;
+  onTextChange?: (text: string) => void;
 }
 
-export default function Book({ pages, title, onWordClick, glossary }: BookProps) {
+export default function Book({ pages, title, onWordClick, glossary, onTextChange }: BookProps) {
 
   const [currentSheet, setCurrentSheet] = useState(0);
 
   const sheets: any[] = [];
 
-  // Front Cover
+  // Sheet 0: Front=Cover, Back=Page 1 Image
   sheets.push({
     isFrontCover: true,
     front: null,
-    back: null,
+    back: pages[0],
+    backType: 'image'
   });
 
-  for (let i = 0; i < pages.length; i += 2) {
+  // Intermediate sheets
+  for (let i = 0; i < pages.length - 1; i++) {
     sheets.push({
       front: pages[i],
-      back: pages[i + 1] || null,
+      frontType: 'text',
+      back: pages[i+1],
+      backType: 'image'
     });
   }
 
-  // Back Cover
+  // Last sheet: Front=Last Page Text, Back=End
   sheets.push({
     isBackCover: true,
-    front: null,
-    back: null,
+    front: pages[pages.length - 1],
+    frontType: 'text',
+    back: null
   });
+
+  useEffect(() => {
+    if (onTextChange) {
+      if (currentSheet > 0 && currentSheet < sheets.length) {
+        // currentSheet 1 means Sheet 0 is flipped. We see Sheet 0 Back (Image) and Sheet 1 Front (Text).
+        // Sheet 1 Front is pages[0] Text.
+        onTextChange(pages[currentSheet - 1].rawText);
+      } else {
+        onTextChange('');
+      }
+    }
+  }, [currentSheet, pages, onTextChange, sheets.length]);
 
   const turnNext = () => {
     if (currentSheet < sheets.length) {
@@ -104,34 +122,35 @@ export default function Book({ pages, title, onWordClick, glossary }: BookProps)
             >
               {/* Front Face */}
               <div
-                className={`absolute inset-0 w-full h-full rounded-r-md pointer-events-auto shadow-[-1px_0_2px_rgba(0,0,0,0.1)] overflow-hidden ${sheet.isFrontCover ? 'bg-[#3e2723] dark:bg-[#1a0f0d]' : 'bg-[#fdfbf7] dark:bg-[#121a28]'}`}
+                className={`absolute inset-0 w-full h-full rounded-r-md pointer-events-auto shadow-[-1px_0_2px_rgba(0,0,0,0.1)] overflow-hidden ${sheet.isFrontCover ? 'bg-[#2b3d4f]' : 'bg-[#fdfbf7] dark:bg-[#121a28]'}`}
                 style={{ backfaceVisibility: 'hidden' }}
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-black/5 to-transparent w-8 pointer-events-none" />
                 {sheet.isFrontCover && (
                   <div className="w-full h-full flex items-center justify-center p-6 md:p-12">
-                    <div className="text-center border-4 border-[#d7ccc8]/30 dark:border-[#d7ccc8]/10 p-6 md:p-10 rounded-sm w-full h-full flex flex-col items-center justify-center shadow-inner">
-                      <h1 className="text-3xl md:text-4xl lg:text-5xl font-serif font-bold mb-4 text-[#d7ccc8]">{title}</h1>
-                      <p className="text-lg md:text-xl font-serif italic text-[#bcaaa4]">Interactive Storybook</p>
+                    <div className="text-center border border-white/20 p-6 md:p-10 rounded-sm w-full h-full flex flex-col items-center justify-center shadow-inner relative">
+                      <div className="absolute inset-4 border border-white/10 pointer-events-none"></div>
+                      <h1 className="text-3xl md:text-4xl lg:text-5xl font-serif font-bold mb-4 text-white drop-shadow-md z-10">{title}</h1>
+                      <p className="text-lg md:text-xl font-serif italic text-white/80 z-10">By Diego Danner</p>
                     </div>
                   </div>
                 )}
-                {sheet.front && <Page page={sheet.front} onWordClick={onWordClick} isLeftPage={false} glossary={glossary} />}
+                {sheet.front && <Page page={sheet.front} onWordClick={onWordClick} isLeftPage={false} glossary={glossary} displayType={sheet.frontType} />}
               </div>
 
               {/* Back Face */}
               <div
-                className={`absolute inset-0 w-full h-full rounded-l-md pointer-events-auto shadow-[1px_0_2px_rgba(0,0,0,0.1)] overflow-hidden ${sheet.isBackCover ? 'bg-[#3e2723] dark:bg-[#1a0f0d]' : 'bg-[#fdfbf7] dark:bg-[#121a28]'}`}
+                className={`absolute inset-0 w-full h-full rounded-l-md pointer-events-auto shadow-[1px_0_2px_rgba(0,0,0,0.1)] overflow-hidden ${sheet.isBackCover ? 'bg-[#2b3d4f]' : 'bg-[#fdfbf7] dark:bg-[#121a28]'}`}
                 style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
               >
                 <div className="absolute inset-0 bg-gradient-to-l from-black/5 to-transparent w-8 right-0 pointer-events-none" />
-                {sheet.isBackCover && (
+                {sheet.isBackCover && !sheet.back && (
                   <div className="w-full h-full flex flex-col items-center justify-center p-8">
                     <p className="text-gray-400 dark:text-[#a5abbb] font-serif italic text-xl">The End</p>
                     <div className="w-16 h-1 mt-4 bg-[#d7ccc8]/30 rounded-full" />
                   </div>
                 )}
-                {sheet.back && <Page page={sheet.back} onWordClick={onWordClick} isLeftPage={true} glossary={glossary} />}
+                {sheet.back && <Page page={sheet.back} onWordClick={onWordClick} isLeftPage={true} glossary={glossary} displayType={sheet.backType} />}
               </div>
             </motion.div>
           );
