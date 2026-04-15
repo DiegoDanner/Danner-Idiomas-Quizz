@@ -126,7 +126,7 @@ export default function PracticeFlashcard({ sentence, startLanguage }: PracticeF
     setIsRecording(true);
     try {
       recognitionRef.current?.start();
-    } catch {
+    } catch (_err) {
       initRecognition();
       setTimeout(() => {
         try { recognitionRef.current?.start(); } catch (e) { console.error(e); }
