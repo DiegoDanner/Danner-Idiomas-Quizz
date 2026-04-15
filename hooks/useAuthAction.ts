@@ -9,8 +9,8 @@ export function useAuthAction() {
   const router = useRouter();
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  const performAction = (action: () => void) => {
-    if (user) {
+  const performAction = (action: () => void, skipCheck: boolean = false) => {
+    if (user || skipCheck) {
       action();
     } else {
       setShowAuthModal(true);

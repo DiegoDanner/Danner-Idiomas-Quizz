@@ -153,6 +153,17 @@ const QUIZZES = [
     actionColor: 'text-emerald-500',
     href: '/quiz/practice-sentences',
   },
+  {
+    title: 'Storytelling Library',
+    description: 'Immerse yourself in captivating stories. Improve your comprehension and vocabulary through interactive reading.',
+    icon: BookOpen,
+    iconColor: 'text-purple-500',
+    iconBg: 'bg-purple-500/10',
+    actionText: 'Browse Stories',
+    actionColor: 'text-purple-500',
+    href: '/storytelling',
+    skipAuth: true,
+  },
 ];
 
 
