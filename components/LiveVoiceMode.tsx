@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleGenAI, Modality, LiveServerMessage } from "@google/genai";
 import { motion, AnimatePresence } from 'motion/react';
-import { Mic, MicOff, PhoneOff, Loader2, Volume2, AlertCircle } from 'lucide-react';
+import { Mic, MicOff, PhoneOff, Loader2, Volume2, AlertCircle, Captions, Languages, CaptionsOff } from 'lucide-react';
 import { AudioStreamer } from '@/lib/audio-utils';
 
 interface LiveVoiceModeProps {
@@ -16,12 +16,16 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
   const [showExplanation, setShowExplanation] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(1.5);
+  const [showCaptions, setShowCaptions] = useState(true);
+  const [showTranslation, setShowTranslation] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aiTranscript, setAiTranscript] = useState<string>('');
+  const [translatedTranscript, setTranslatedTranscript] = useState<string>('');
   
   const audioStreamerRef = useRef<AudioStreamer | null>(null);
   const sessionRef = useRef<any>(null);
   const isMutedRef = useRef(isMuted);
+  const isAiSpeakingRef = useRef(false);
 
   useEffect(() => {
     audioStreamerRef.current = new AudioStreamer((base64Data) => {
@@ -85,10 +89,19 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
             setIsConnecting(false);
             audioStreamerRef.current?.startCapture();
             audioStreamerRef.current?.setSpeechEndCallback(() => {
-              setAiTranscript('');
+              isAiSpeakingRef.current = false;
             });
           },
           onmessage: (message: LiveServerMessage) => {
+            // Check if this is a new model turn
+            if (message.serverContent?.modelTurn) {
+              if (!isAiSpeakingRef.current) {
+                setAiTranscript('');
+                setTranslatedTranscript('');
+                isAiSpeakingRef.current = true;
+              }
+            }
+
             const base64Audio = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
             if (base64Audio) {
               audioStreamerRef.current?.playAudioChunk(base64Audio);
@@ -101,6 +114,8 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
 
             if (message.serverContent?.interrupted) {
               setAiTranscript('');
+              setTranslatedTranscript('');
+              isAiSpeakingRef.current = false;
               console.log("AI Interrupted");
             }
           },
@@ -133,6 +148,31 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
       stopSession();
     };
   }, [startSession, stopSession, showExplanation]);
+
+  useEffect(() => {
+    if (!showTranslation || !aiTranscript.trim() || !isConnected) {
+      setTranslatedTranscript('');
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+      if (!apiKey) return;
+
+      try {
+        const ai: any = new GoogleGenAI({ apiKey });
+        // Use any to bypass TS error if the version in use is slightly different from typical @google/genai documentation
+        const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const result = await model.generateContent(`Translate the following English text to Portuguese. Provide only the translation, nothing else: "${aiTranscript.trim()}"`);
+        const translation = result.response.text();
+        setTranslatedTranscript(translation.trim());
+      } catch (e) {
+        console.error("Translation error:", e);
+      }
+    }, 1000); // 1s debounce
+
+    return () => clearTimeout(timer);
+  }, [aiTranscript, showTranslation, isConnected]);
 
   const handleStart = async () => {
     if (audioStreamerRef.current) {
@@ -243,18 +283,29 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
         </div>
 
         {/* Transcript Box */}
-        <div className="w-full bg-white/5 border border-white/10 rounded-3xl p-8 min-h-[160px] flex items-center justify-center text-center shadow-inner overflow-hidden">
+        <div className={`w-full bg-white/5 border border-white/10 rounded-3xl p-6 min-h-[160px] flex flex-col items-center justify-center text-center shadow-inner overflow-hidden transition-all duration-500 ${!showCaptions ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'}`}>
           <AnimatePresence mode="wait">
             {aiTranscript ? (
-              <motion.p
-                key="transcript"
+              <motion.div
+                key="transcript-container"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="text-gray-200 text-xl font-medium leading-relaxed"
+                className="space-y-3"
               >
-                &quot;{aiTranscript.trim()}&quot;
-              </motion.p>
+                <p className="text-gray-200 text-xl font-medium leading-relaxed">
+                  &quot;{aiTranscript.trim()}&quot;
+                </p>
+                {showTranslation && translatedTranscript && (
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-[#6cb2ff]/70 text-sm font-normal italic leading-tight"
+                  >
+                    {translatedTranscript}
+                  </motion.p>
+                )}
+              </motion.div>
             ) : (
               <motion.p
                 key="listening"
@@ -296,7 +347,17 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
           </div>
         </div>
 
-        <div className="flex items-center justify-center gap-6 pt-4">
+        <div className="flex items-center justify-center gap-4 pt-4">
+          <button
+            onClick={() => setShowCaptions(!showCaptions)}
+            className={`p-3 rounded-full transition-all ${
+              showCaptions ? 'bg-[#6cb2ff]/20 text-[#6cb2ff]' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+            }`}
+            title={showCaptions ? "Disable Captions" : "Enable Captions"}
+          >
+            {showCaptions ? <Captions className="w-5 h-5" /> : <CaptionsOff className="w-5 h-5" />}
+          </button>
+
           <button
             onClick={() => setIsMuted(!isMuted)}
             className={`p-4 rounded-full transition-all ${
@@ -311,6 +372,16 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
             className="p-6 bg-red-600 text-white rounded-full hover:bg-red-700 transition-all shadow-xl shadow-red-600/20"
           >
             <PhoneOff className="w-8 h-8" />
+          </button>
+
+          <button
+            onClick={() => setShowTranslation(!showTranslation)}
+            className={`p-3 rounded-full transition-all ${
+              showTranslation ? 'bg-green-500/20 text-green-500' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+            }`}
+            title={showTranslation ? "Hide Translation" : "Show Translation"}
+          >
+            <Languages className="w-5 h-5" />
           </button>
         </div>
       </div>
