@@ -8,14 +8,16 @@ export class AudioStreamer {
   private processor: ScriptProcessorNode | null = null;
   private stream: MediaStream | null = null;
   private source: MediaStreamAudioSourceNode | null = null;
+  private gainNode: GainNode | null = null;
+  private volume: number = 1.0;
   private nextStartTime: number = 0;
   private isPlaying: boolean = false;
   private onSpeechEnd: (() => void) | null = null;
   private speechEndTimeout: any = null;
-  private onAudioData: (_data: string) => void;
+  private onAudioData: (data: string) => void;
 
-  constructor(onAudioData: (_data: string) => void) {
-    this.onAudioData = onAudioData;
+  constructor(callback: (data: string) => void) {
+    this.onAudioData = (d: string) => callback(d);
   }
 
   setSpeechEndCallback(callback: () => void) {
@@ -25,16 +27,31 @@ export class AudioStreamer {
   /**
    * Initializes the AudioContext. Must be called from a user gesture.
    */
-  async init() {
+  async init(sampleRate = 16000) {
     if (!this.audioContext) {
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
-        sampleRate: 16000,
+        sampleRate,
       });
-      if (this.audioContext.state === 'suspended') {
-        await this.audioContext.resume();
-      }
     }
+
+    if (!this.gainNode && this.audioContext) {
+      this.gainNode = this.audioContext.createGain();
+      this.gainNode.gain.value = this.volume;
+      this.gainNode.connect(this.audioContext.destination);
+    }
+
+    if (this.audioContext.state === 'suspended') {
+      await this.audioContext.resume();
+    }
+
     return this.audioContext;
+  }
+
+  setVolume(volume: number) {
+    this.volume = volume;
+    if (this.gainNode && this.audioContext) {
+      this.gainNode.gain.setTargetAtTime(volume, this.audioContext.currentTime, 0.1);
+    }
   }
 
   async startCapture() {
@@ -82,6 +99,7 @@ export class AudioStreamer {
     if (this.audioContext && this.audioContext.state !== 'closed') {
       this.audioContext.close();
       this.audioContext = null;
+      this.gainNode = null;
     }
     if (this.speechEndTimeout) {
       clearTimeout(this.speechEndTimeout);
@@ -89,15 +107,8 @@ export class AudioStreamer {
   }
 
   async playAudioChunk(base64Data: string) {
-    if (!this.audioContext) {
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
-        sampleRate: 24000, // Gemini Live output is usually 24kHz
-      });
-    }
-
-    if (this.audioContext.state === 'suspended') {
-      await this.audioContext.resume();
-    }
+    await this.init(24000); // Ensure context and gain are ready, Gemini Live is 24kHz
+    if (!this.audioContext) return;
 
     const pcmData = this.base64ToArrayBuffer(base64Data);
     const floatData = this.pcmToFloat32(pcmData);
@@ -107,7 +118,12 @@ export class AudioStreamer {
 
     const source = this.audioContext.createBufferSource();
     source.buffer = audioBuffer;
-    source.connect(this.audioContext.destination);
+
+    if (this.gainNode) {
+      source.connect(this.gainNode);
+    } else {
+      source.connect(this.audioContext.destination);
+    }
 
     const currentTime = this.audioContext.currentTime;
     if (this.nextStartTime < currentTime) {

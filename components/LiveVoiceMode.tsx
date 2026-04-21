@@ -15,6 +15,7 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [showExplanation, setShowExplanation] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
+  const [volume, setVolume] = useState(1.5);
   const [error, setError] = useState<string | null>(null);
   const [aiTranscript, setAiTranscript] = useState<string>('');
   
@@ -35,6 +36,10 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
   useEffect(() => {
     isMutedRef.current = isMuted;
   }, [isMuted]);
+
+  useEffect(() => {
+    audioStreamerRef.current?.setVolume(volume);
+  }, [volume]);
 
   const stopSession = useCallback(() => {
     if (sessionRef.current) {
@@ -132,6 +137,11 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
   const handleStart = async () => {
     if (audioStreamerRef.current) {
       try {
+        // Create a silent audio element to help mobile browsers route audio to main speaker
+        const audio = new Audio();
+        audio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA=='; // 100ms silent wav
+        audio.play().catch(() => {});
+
         await audioStreamerRef.current.init();
       } catch (e) {
         console.error("Failed to initialize audio context:", e);
@@ -265,6 +275,26 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
             <p>{error}</p>
           </div>
         )}
+
+        {/* Volume Slider */}
+        <div className="w-full space-y-2 px-4">
+          <div className="flex items-center justify-between text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <span>Volume Boost</span>
+            <span>{Math.round(volume * 100)}%</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Volume2 className="w-4 h-4 text-gray-400" />
+            <input
+              type="range"
+              min="0"
+              max="4"
+              step="0.1"
+              value={volume}
+              onChange={(e) => setVolume(parseFloat(e.target.value))}
+              className="flex-1 h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-[#6cb2ff]"
+            />
+          </div>
+        </div>
 
         <div className="flex items-center justify-center gap-6 pt-4">
           <button
