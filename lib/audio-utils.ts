@@ -14,10 +14,10 @@ export class AudioStreamer {
   private isPlaying: boolean = false;
   private onSpeechEnd: (() => void) | null = null;
   private speechEndTimeout: any = null;
-  private onAudioData: (_data: string) => void;
+  private onAudioData: (data: string) => void;
 
-  constructor(onAudioData: (_data: string) => void) {
-    this.onAudioData = onAudioData;
+  constructor(callback: (data: string) => void) {
+    this.onAudioData = (d: string) => callback(d);
   }
 
   setSpeechEndCallback(callback: () => void) {
@@ -108,6 +108,7 @@ export class AudioStreamer {
 
   async playAudioChunk(base64Data: string) {
     await this.init(24000); // Ensure context and gain are ready, Gemini Live is 24kHz
+    if (!this.audioContext) return;
 
     const pcmData = this.base64ToArrayBuffer(base64Data);
     const floatData = this.pcmToFloat32(pcmData);
