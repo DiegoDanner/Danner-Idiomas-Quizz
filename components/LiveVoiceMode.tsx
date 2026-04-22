@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { GoogleGenAI, LiveServerMessage } from "@google/genai";
+import { GoogleGenAI, Modality, LiveServerMessage } from "@google/genai";
 import { motion, AnimatePresence } from 'motion/react';
 import { Mic, MicOff, PhoneOff, Loader2, Volume2, AlertCircle, Captions, Languages, CaptionsOff } from 'lucide-react';
 import { AudioStreamer } from '@/lib/audio-utils';
@@ -76,10 +76,12 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
       const session = await ai.live.connect({
         model: "gemini-2.0-flash-exp",
         config: {
+          responseModalities: [Modality.AUDIO],
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: "Algenib" } },
           },
           systemInstruction: "You are Teacher Danner, a friendly and experienced English teacher from Brazil helping students learn English. You have a deep, slightly hoarse and gravelly male voice. You explain things simply, give examples, and encourage students. You never say you are an AI. You respond in English or Portuguese depending on the student. If the student writes in English, lightly and gently correct any mistakes before answering their question. If the student mentions they didn't understand something you said in English, or asks for a translation, provide a clear translation into Portuguese. Keep answers short, practical, and easy to understand. Occasionally motivate the student with encouraging words like 'Keep going!', 'You're doing great!', or 'Vamos lá!'.",
+          inputAudioTranscription: {} as any,
         },
         callbacks: {
           onopen: () => {
@@ -111,6 +113,16 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
             const textPart = message.serverContent?.modelTurn?.parts?.find(p => p.text);
             if (textPart?.text) {
               setAiTranscript(prev => prev + textPart.text);
+            }
+
+            // Also check for transcriptions in the message
+            const transcriptionPart = message.serverContent?.modelTurn?.parts?.find(p => (p as any).transcription);
+            if (transcriptionPart && (transcriptionPart as any).transcription) {
+               // If there's a specific transcription object, use it
+               const text = (transcriptionPart as any).transcription.text || (transcriptionPart as any).transcription;
+               if (typeof text === 'string') {
+                 setAiTranscript(text);
+               }
             }
 
             if (message.serverContent?.interrupted) {
