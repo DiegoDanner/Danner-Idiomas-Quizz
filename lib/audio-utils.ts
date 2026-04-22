@@ -16,10 +16,10 @@ export class AudioStreamer {
   private isPlaying: boolean = false;
   private onSpeechEnd: (() => void) | null = null;
   private speechEndTimeout: any = null;
-  private onAudioData: (data: string) => void;
+  private onAudioData: (_data: string) => void;
 
-  constructor(callback: (data: string) => void) {
-    this.onAudioData = (d: string) => callback(d);
+  constructor(onAudioData: (_data: string) => void) {
+    this.onAudioData = onAudioData;
   }
 
   setSpeechEndCallback(callback: () => void) {
@@ -31,25 +31,22 @@ export class AudioStreamer {
    */
   async init() {
     if (!this.audioContext) {
-      console.log("Initializing AudioContext...");
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
         latencyHint: 'interactive',
       });
 
       // Mobile audio routing trick: Use an <audio> element connected to the context
-      // This forces the OS to treat this as a media stream rather than a communication stream
       this.destination = this.audioContext.createMediaStreamDestination();
       this.audioElement = new Audio();
       this.audioElement.id = 'gemini-live-audio-output';
       this.audioElement.style.display = 'none';
       this.audioElement.setAttribute('playsinline', 'true');
       this.audioElement.setAttribute('autoplay', 'true');
-      this.audioElement.setAttribute('x-webkit-airplay', 'allow');
       document.body.appendChild(this.audioElement);
 
       this.audioElement.srcObject = this.destination.stream;
       this.audioElement.volume = 1.0;
-      this.audioElement.play().catch(e => console.warn("Audio element play (initial) failed, will retry on chunk:", e));
+      this.audioElement.play().catch(() => {});
     }
 
     if (!this.gainNode && this.audioContext) {
@@ -57,9 +54,7 @@ export class AudioStreamer {
       this.gainNode.gain.value = this.volume;
 
       if (this.destination) {
-        // Connect to the MediaStreamDestination (for the <audio> element trick)
         this.gainNode.connect(this.destination);
-        // Also connect to the hardware output as a fallback
         this.gainNode.connect(this.audioContext.destination);
       } else {
         this.gainNode.connect(this.audioContext.destination);
@@ -88,8 +83,6 @@ export class AudioStreamer {
 
       this.stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          sampleRate: 16000,
-          channelCount: 1,
           echoCancellation: true,
           noiseSuppression: true,
         }
@@ -103,9 +96,6 @@ export class AudioStreamer {
 
       this.processor.onaudioprocess = (e) => {
         const inputData = e.inputBuffer.getChannelData(0);
-        // Resample manually if needed? ScriptProcessor resamples to context rate.
-        // But the API expects 16kHz.
-        // For now, let's keep it simple as the previous version was working for some.
         const pcmData = this.float32ToPcm(inputData);
         const base64Data = this.arrayBufferToBase64(pcmData);
         this.onAudioData(base64Data);
@@ -150,11 +140,9 @@ export class AudioStreamer {
   }
 
   async playAudioChunk(base64Data: string) {
-    // Ensure context and gain are ready.
     await this.init();
     if (!this.audioContext) return;
 
-    // Retry playing the audio element if it was blocked or paused
     if (this.audioElement && this.audioElement.paused) {
       this.audioElement.play().catch(() => {});
     }
@@ -162,6 +150,7 @@ export class AudioStreamer {
     const pcmData = this.base64ToArrayBuffer(base64Data);
     const floatData = this.pcmToFloat32(pcmData);
     
+    // Create buffer at 24kHz as Gemini Live sends 24kHz audio
     const audioBuffer = this.audioContext.createBuffer(1, floatData.length, 24000);
     audioBuffer.getChannelData(0).set(floatData);
 
