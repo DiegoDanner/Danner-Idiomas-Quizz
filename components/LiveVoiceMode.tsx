@@ -77,19 +77,20 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
         model: "gemini-2.0-flash-exp",
         config: {
           generationConfig: {
-            responseModalities: ["audio"],
-            speechConfig: {
-              voiceConfig: { prebuiltVoiceConfig: { voiceName: "Algenib" } },
-            },
+            temperature: 0.7,
+          },
+          responseModalities: ["audio"],
+          speechConfig: {
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: "Algenib" } },
           },
           systemInstruction: {
             parts: [{ text: "You are Teacher Danner, a friendly and experienced English teacher from Brazil helping students learn English. You have a deep, slightly hoarse and gravelly male voice. You explain things simply, give examples, and encourage students. You never say you are an AI. You respond in English or Portuguese depending on the student. If the student writes in English, lightly and gently correct any mistakes before answering their question. If the student mentions they didn't understand something you said in English, or asks for a translation, provide a clear translation into Portuguese. Keep answers short, practical, and easy to understand. Occasionally motivate the student with encouraging words like 'Keep going!', 'You're doing great!', or 'Vamos lá!'." }]
           },
           inputAudioTranscription: { enabled: true },
-          outputAudioTranscription: { enabled: true },
         } as any,
         callbacks: {
           onopen: () => {
+            console.log("Live API Connection Opened");
             setIsConnected(true);
             setIsConnecting(false);
             audioStreamerRef.current?.startCapture();
@@ -100,6 +101,7 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
           onmessage: (message: LiveServerMessage) => {
             // Check if this is a new model turn or a significant gap in time
             const now = Date.now();
+
             if (message.serverContent?.modelTurn) {
               // If AI hasn't spoken for 2+ seconds, treat as new caption block
               if (!isAiSpeakingRef.current || (now - lastAiMessageTimeRef.current > 2000)) {
@@ -135,11 +137,13 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
             }
           },
           onerror: (err) => {
-            console.error("Live API Error:", err);
+            console.error("Live API Error Details:", JSON.stringify(err, null, 2));
+            console.error("Live API Error Message:", err.message);
             setError(`Connection error: ${err.message || 'Check your internet or API key'}.`);
             stopSession();
           },
-          onclose: () => {
+          onclose: (event: any) => {
+            console.log("Live API Connection Closed:", event);
             setIsConnected(false);
             setIsConnecting(false);
             stopSession();
