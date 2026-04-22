@@ -16,10 +16,10 @@ export class AudioStreamer {
   private isPlaying: boolean = false;
   private onSpeechEnd: (() => void) | null = null;
   private speechEndTimeout: any = null;
-  private onAudioData: (_data: string) => void;
+  private onAudioData: (data: string) => void;
 
-  constructor(onAudioData: (_data: string) => void) {
-    this.onAudioData = onAudioData;
+  constructor(callback: (data: string) => void) {
+    this.onAudioData = (d: string) => callback(d);
   }
 
   setSpeechEndCallback(callback: () => void) {
@@ -31,12 +31,11 @@ export class AudioStreamer {
    */
   async init() {
     if (!this.audioContext) {
-      console.log("Initializing AudioContext...");
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
         latencyHint: 'interactive',
       });
 
-      // Mobile audio routing trick: Use an <audio> element connected to the context
+      // Mobile audio routing trick
       this.destination = this.audioContext.createMediaStreamDestination();
       this.audioElement = new Audio();
       this.audioElement.id = 'gemini-live-audio-output';
@@ -91,7 +90,6 @@ export class AudioStreamer {
       
       if (!this.audioContext || !this.stream) return;
       this.source = this.audioContext.createMediaStreamSource(this.stream);
-      
       this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
 
       this.processor.onaudioprocess = (e) => {
