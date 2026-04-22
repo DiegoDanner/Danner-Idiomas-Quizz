@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleGenAI, Modality, LiveServerMessage } from "@google/genai";
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { Mic, MicOff, PhoneOff, Loader2, Volume2, AlertCircle } from 'lucide-react';
 import { AudioStreamer } from '@/lib/audio-utils';
 
@@ -15,9 +15,8 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [showExplanation, setShowExplanation] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
-  const [volume, setVolume] = useState(2.0);
+  const [volume, setVolume] = useState(2.5); // Default to 250% boost
   const [error, setError] = useState<string | null>(null);
-  const [aiTranscript, setAiTranscript] = useState<string>('');
   
   const audioStreamerRef = useRef<AudioStreamer | null>(null);
   const sessionRef = useRef<any>(null);
@@ -69,47 +68,39 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
       const ai = new GoogleGenAI({ apiKey });
       
       const session = await ai.live.connect({
-        model: "gemini-3.1-flash-live-preview",
+        model: "gemini-2.0-flash-exp",
         config: {
           responseModalities: [Modality.AUDIO],
+          systemInstruction: "You are Teacher Danner, a friendly and experienced English teacher from Brazil helping students learn English. You have a deep, slightly hoarse and gravelly male voice. You explain things simply, give examples, and encourage students. You never say you are an AI. You respond in English or Portuguese depending on the student. If the student writes in English, lightly and gently correct any mistakes before answering their question. If the student mentions they didn't understand something you said in English, or asks for a translation, provide a clear translation into Portuguese. Keep answers short, practical, and easy to understand. Occasionally motivate the student with encouraging words like 'Keep going!', 'You're doing great!', or 'Vamos lá!'.",
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: "Algenib" } },
           },
-          systemInstruction: "You are Teacher Danner, a friendly and experienced English teacher from Brazil helping students learn English. You have a deep, slightly hoarse and gravelly male voice. You explain things simply, give examples, and encourage students. You never say you are an AI. You respond in English or Portuguese depending on the student. If the student writes in English, lightly and gently correct any mistakes before answering their question. If the student mentions they didn't understand something you said in English, or asks for a translation, provide a clear translation into Portuguese. Keep answers short, practical, and easy to understand. Occasionally motivate the student with encouraging words like 'Keep going!', 'You're doing great!', or 'Vamos lá!'.",
-          inputAudioTranscription: {},
-          outputAudioTranscription: {},
+          generationConfig: {
+            temperature: 0.7,
+          }
         },
         callbacks: {
           onopen: () => {
+            console.log("Live API connected");
             setIsConnected(true);
             setIsConnecting(false);
             audioStreamerRef.current?.startCapture();
-            audioStreamerRef.current?.setSpeechEndCallback(() => {
-              setAiTranscript('');
-            });
           },
           onmessage: (message: LiveServerMessage) => {
-            const base64Audio = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
-            if (base64Audio) {
-              audioStreamerRef.current?.playAudioChunk(base64Audio);
-            }
-
-            const textPart = message.serverContent?.modelTurn?.parts?.find(p => p.text);
-            if (textPart?.text) {
-              setAiTranscript(prev => prev + textPart.text);
-            }
-
-            if (message.serverContent?.interrupted) {
-              setAiTranscript('');
-              console.log("AI Interrupted");
+            const audioData = message.data;
+            if (audioData) {
+              audioStreamerRef.current?.playAudioChunk(audioData);
             }
           },
-          onerror: (err) => {
+          onerror: (err: any) => {
             console.error("Live API Error:", err);
-            setError("Connection error. Please try again.");
+            setError(`Connection error: ${err.message || 'Check your internet or API key'}`);
+            setIsConnected(false);
+            setIsConnecting(false);
             stopSession();
           },
-          onclose: () => {
+          onclose: (event: any) => {
+            console.log("Live API Closed:", event);
             setIsConnected(false);
             setIsConnecting(false);
             stopSession();
@@ -137,6 +128,10 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
   const handleStart = async () => {
     if (audioStreamerRef.current) {
       try {
+        // Force routing trick
+        const audio = new Audio();
+        audio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==';
+        audio.play().catch(() => {});
         await audioStreamerRef.current.init();
       } catch (e) {
         console.error("Failed to initialize audio context:", e);
@@ -203,7 +198,6 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
       </div>
 
       <div className="space-y-8 w-full max-w-sm">
-        {/* Visualizer Placeholder */}
         <div className="relative w-48 h-48 mx-auto flex items-center justify-center">
           <motion.div
             animate={{
@@ -237,37 +231,19 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
           </p>
         </div>
 
-        {/* Transcript Box */}
-        <div className="w-full bg-white/5 border border-white/10 rounded-3xl p-8 min-h-[160px] flex items-center justify-center text-center shadow-inner overflow-hidden">
-          <AnimatePresence mode="wait">
-            {aiTranscript ? (
-              <motion.p
-                key="transcript"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="text-gray-200 text-xl font-medium leading-relaxed"
-              >
-                &quot;{aiTranscript.trim()}&quot;
-              </motion.p>
-            ) : (
-              <motion.p
-                key="listening"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="text-gray-500 text-lg italic animate-pulse"
-              >
-                {isConnected ? "Listening..." : "..."}
-              </motion.p>
-            )}
-          </AnimatePresence>
-        </div>
-
         {error && (
-          <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl flex items-center gap-3 text-red-500 text-sm text-left">
-            <AlertCircle className="w-5 h-5 shrink-0" />
-            <p>{error}</p>
+          <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl flex flex-col gap-2 text-red-500 text-sm text-left">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <p className="font-bold">Connection Issue</p>
+            </div>
+            <p className="opacity-80">{error}</p>
+            <button
+              onClick={() => { setError(null); startSession(); }}
+              className="mt-2 py-2 px-4 bg-red-500/20 rounded-lg hover:bg-red-500/30 transition-colors self-start font-bold"
+            >
+              Try Reconnecting
+            </button>
           </div>
         )}
 
