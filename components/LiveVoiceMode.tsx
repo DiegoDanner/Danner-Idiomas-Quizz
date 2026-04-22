@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { GoogleGenAI, Modality, LiveServerMessage } from "@google/genai";
+import { GoogleGenAI, LiveServerMessage } from "@google/genai";
 import { motion, AnimatePresence } from 'motion/react';
 import { Mic, MicOff, PhoneOff, Loader2, Volume2, AlertCircle, Captions, Languages, CaptionsOff } from 'lucide-react';
 import { AudioStreamer } from '@/lib/audio-utils';
@@ -76,13 +76,18 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
       const session = await ai.live.connect({
         model: "gemini-2.0-flash-exp",
         config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: {
-            voiceConfig: { prebuiltVoiceConfig: { voiceName: "Algenib" } },
+          generationConfig: {
+            responseModalities: ["audio"],
+            speechConfig: {
+              voiceConfig: { prebuiltVoiceConfig: { voiceName: "Algenib" } },
+            },
           },
-          systemInstruction: "You are Teacher Danner, a friendly and experienced English teacher from Brazil helping students learn English. You have a deep, slightly hoarse and gravelly male voice. You explain things simply, give examples, and encourage students. You never say you are an AI. You respond in English or Portuguese depending on the student. If the student writes in English, lightly and gently correct any mistakes before answering their question. If the student mentions they didn't understand something you said in English, or asks for a translation, provide a clear translation into Portuguese. Keep answers short, practical, and easy to understand. Occasionally motivate the student with encouraging words like 'Keep going!', 'You're doing great!', or 'Vamos lá!'.",
-          inputAudioTranscription: {} as any,
-        },
+          systemInstruction: {
+            parts: [{ text: "You are Teacher Danner, a friendly and experienced English teacher from Brazil helping students learn English. You have a deep, slightly hoarse and gravelly male voice. You explain things simply, give examples, and encourage students. You never say you are an AI. You respond in English or Portuguese depending on the student. If the student writes in English, lightly and gently correct any mistakes before answering their question. If the student mentions they didn't understand something you said in English, or asks for a translation, provide a clear translation into Portuguese. Keep answers short, practical, and easy to understand. Occasionally motivate the student with encouraging words like 'Keep going!', 'You're doing great!', or 'Vamos lá!'." }]
+          },
+          inputAudioTranscription: { enabled: true },
+          outputAudioTranscription: { enabled: true },
+        } as any,
         callbacks: {
           onopen: () => {
             setIsConnected(true);
@@ -103,26 +108,23 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
                 isAiSpeakingRef.current = true;
               }
               lastAiMessageTimeRef.current = now;
-            }
 
-            const base64Audio = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
-            if (base64Audio) {
-              audioStreamerRef.current?.playAudioChunk(base64Audio);
-            }
-
-            const textPart = message.serverContent?.modelTurn?.parts?.find(p => p.text);
-            if (textPart?.text) {
-              setAiTranscript(prev => prev + textPart.text);
-            }
-
-            // Also check for transcriptions in the message
-            const transcriptionPart = message.serverContent?.modelTurn?.parts?.find(p => (p as any).transcription);
-            if (transcriptionPart && (transcriptionPart as any).transcription) {
-               // If there's a specific transcription object, use it
-               const text = (transcriptionPart as any).transcription.text || (transcriptionPart as any).transcription;
-               if (typeof text === 'string') {
-                 setAiTranscript(text);
-               }
+              // Handle audio/text combinations correctly
+              const parts = message.serverContent?.modelTurn?.parts || [];
+              parts.forEach((part: any) => {
+                if (part.text) {
+                  setAiTranscript(prev => prev + part.text);
+                }
+                // Check for transcriptions in the message
+                if (part.transcription?.text) {
+                  setAiTranscript(part.transcription.text);
+                } else if (part.transcription && typeof part.transcription === 'string') {
+                  setAiTranscript(part.transcription);
+                }
+                if (part.inlineData?.data) {
+                  audioStreamerRef.current?.playAudioChunk(part.inlineData.data);
+                }
+              });
             }
 
             if (message.serverContent?.interrupted) {
@@ -134,7 +136,7 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
           },
           onerror: (err) => {
             console.error("Live API Error:", err);
-            setError("Connection error. Please try again.");
+            setError(`Connection error: ${err.message || 'Check your internet or API key'}.`);
             stopSession();
           },
           onclose: () => {
