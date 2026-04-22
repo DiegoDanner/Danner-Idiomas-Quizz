@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { GoogleGenAI, Modality, LiveServerMessage } from "@google/genai";
-import { motion } from 'motion/react';
-import { Mic, MicOff, PhoneOff, Loader2, Volume2, AlertCircle } from 'lucide-react';
+import { GoogleGenAI, LiveServerMessage } from "@google/genai";
+import { motion, AnimatePresence } from 'motion/react';
+import { Mic, MicOff, PhoneOff, Loader2, Volume2 } from 'lucide-react';
 import { AudioStreamer } from '@/lib/audio-utils';
 
 interface LiveVoiceModeProps {
@@ -15,8 +15,10 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [showExplanation, setShowExplanation] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
-  const [volume, setVolume] = useState(2.5); // Default to 250% boost
+  const [volume, setVolume] = useState(2.0); // Default 200%
   const [error, setError] = useState<string | null>(null);
+  const [aiTranscript, setAiTranscript] = useState<string>('');
+  const [logs, setLogs] = useState<string[]>([]);
   
   const audioStreamerRef = useRef<AudioStreamer | null>(null);
   const sessionRef = useRef<any>(null);
@@ -40,6 +42,11 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
     audioStreamerRef.current?.setVolume(volume);
   }, [volume]);
 
+  const addLog = useCallback((msg: string) => {
+    console.log(`[LiveMode] ${msg}`);
+    setLogs(prev => [msg, ...prev].slice(0, 5));
+  }, []);
+
   const stopSession = useCallback(() => {
     if (sessionRef.current) {
       try {
@@ -57,12 +64,13 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
   const startSession = useCallback(async () => {
     const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
     if (!apiKey) {
-      setError("Gemini API Key not found. Please configure it in your environment.");
+      setError("Gemini API Key missing.");
       return;
     }
 
     setIsConnecting(true);
     setError(null);
+    addLog("Connecting to gemini-2.0-flash-exp...");
 
     try {
       const ai = new GoogleGenAI({ apiKey });
@@ -70,18 +78,20 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
       const session = await ai.live.connect({
         model: "gemini-2.0-flash-exp",
         config: {
-          responseModalities: [Modality.AUDIO],
-          systemInstruction: "You are Teacher Danner, a friendly and experienced English teacher from Brazil helping students learn English. You have a deep, slightly hoarse and gravelly male voice. You explain things simply, give examples, and encourage students. You never say you are an AI. You respond in English or Portuguese depending on the student. If the student writes in English, lightly and gently correct any mistakes before answering their question. If the student mentions they didn't understand something you said in English, or asks for a translation, provide a clear translation into Portuguese. Keep answers short, practical, and easy to understand. Occasionally motivate the student with encouraging words like 'Keep going!', 'You're doing great!', or 'Vamos lá!'.",
+          generationConfig: {
+            temperature: 0.7,
+            responseModalities: ["AUDIO" as any],
+          },
+          systemInstruction: {
+            parts: [{ text: "You are Teacher Danner, a friendly English teacher from Brazil helping students learn English. You have a deep, slightly hoarse and gravelly male voice. Explain things simply. Use English mostly, but Portuguese if needed." }]
+          },
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: "Algenib" } },
           },
-          generationConfig: {
-            temperature: 0.7,
-          }
-        },
+        } as any,
         callbacks: {
           onopen: () => {
-            console.log("Live API connected");
+            addLog("Connection Opened");
             setIsConnected(true);
             setIsConnecting(false);
             audioStreamerRef.current?.startCapture();
@@ -91,16 +101,24 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
             if (audioData) {
               audioStreamerRef.current?.playAudioChunk(audioData);
             }
+
+            const text = message.text;
+            if (text) {
+              setAiTranscript(prev => prev + text);
+            }
+
+            if (message.serverContent?.interrupted) {
+              setAiTranscript('');
+              addLog("Interrupted");
+            }
           },
           onerror: (err: any) => {
-            console.error("Live API Error:", err);
-            setError(`Connection error: ${err.message || 'Check your internet or API key'}`);
-            setIsConnected(false);
-            setIsConnecting(false);
+            addLog(`Error: ${err.message || "WebSocket Error"}`);
+            setError(`Connection lost: ${err.message || 'Check internet connection'}`);
             stopSession();
           },
           onclose: (event: any) => {
-            console.log("Live API Closed:", event);
+            addLog(`Closed: ${event.code || "Unknown"}`);
             setIsConnected(false);
             setIsConnecting(false);
             stopSession();
@@ -110,11 +128,11 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
 
       sessionRef.current = session;
     } catch (err: any) {
-      console.error("Failed to start session:", err);
+      addLog(`Failed: ${err.message}`);
       setError(`Failed to connect: ${err.message}`);
       setIsConnecting(false);
     }
-  }, [stopSession]);
+  }, [stopSession, addLog]);
 
   useEffect(() => {
     if (!showExplanation) {
@@ -128,13 +146,12 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
   const handleStart = async () => {
     if (audioStreamerRef.current) {
       try {
-        // Force routing trick
         const audio = new Audio();
         audio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==';
         audio.play().catch(() => {});
         await audioStreamerRef.current.init();
       } catch (e) {
-        console.error("Failed to initialize audio context:", e);
+        console.error("Audio init error:", e);
       }
     }
     setShowExplanation(false);
@@ -152,31 +169,13 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
           <Mic className="w-10 h-10 text-[#6cb2ff]" />
         </div>
         <h3 className="text-2xl font-bold text-white mb-2">Voice Classroom</h3>
-        <h4 className="text-lg font-medium text-[#6cb2ff] mb-4">Sala de Aula por Voz</h4>
-        <div className="space-y-4 mb-8">
-          <p className="text-gray-400 leading-relaxed">
-            You can speak directly with Teacher Danner! Practice your pronunciation and conversation skills in real-time.
-          </p>
-          <p className="text-gray-500 text-sm leading-relaxed italic">
-            Você pode falar diretamente com o Professor Danner! Pratique sua pronúncia e habilidades de conversação em tempo real.
-          </p>
-        </div>
-        <div className="flex flex-col w-full gap-3">
-          <button
-            onClick={handleStart}
-            className="w-full py-4 bg-[#6cb2ff] text-white rounded-2xl font-bold hover:bg-[#6cb2ff]/80 transition-all shadow-lg shadow-[#6cb2ff]/20 flex flex-col items-center justify-center"
-          >
-            <span>Start Speaking</span>
-            <span className="text-xs opacity-80 font-medium">Começar a Falar</span>
-          </button>
-          <button
-            onClick={onClose}
-            className="w-full py-4 bg-white/5 text-gray-400 rounded-2xl font-bold hover:bg-white/10 transition-all flex flex-col items-center justify-center"
-          >
-            <span>Maybe Later</span>
-            <span className="text-xs opacity-60 font-medium">Talvez Depois</span>
-          </button>
-        </div>
+        <p className="text-gray-400 mb-8">Practice English conversation with Teacher Danner.</p>
+        <button
+          onClick={handleStart}
+          className="w-full py-4 bg-[#6cb2ff] text-white rounded-2xl font-bold hover:bg-[#6cb2ff]/80 transition-all"
+        >
+          Start Speaking
+        </button>
       </motion.div>
     );
   }
@@ -224,30 +223,52 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
 
         <div className="space-y-2">
           <h3 className="text-2xl font-bold text-white">
-            {isConnecting ? "Connecting to Teacher Danner..." : isConnected ? "Teacher Danner" : "Connection Lost"}
+            {isConnecting ? "Connecting..." : isConnected ? "Teacher Danner" : "Connection Lost"}
           </h3>
-          <p className="text-[#6cb2ff] font-medium text-sm">
-            {isConnected ? "Live Voice Mode" : "Setting up your voice classroom..."}
-          </p>
+          {!isConnected && !isConnecting && (
+            <button
+              onClick={() => { setError(null); startSession(); }}
+              className="mt-2 px-4 py-1.5 bg-[#6cb2ff]/20 text-[#6cb2ff] rounded-full text-xs font-bold hover:bg-[#6cb2ff]/30 transition-all flex items-center gap-2 mx-auto"
+            >
+              <Loader2 className="w-3 h-3" />
+              <span>Retry Connection</span>
+            </button>
+          )}
+        </div>
+
+        {/* Transcript Box */}
+        <div className="w-full bg-white/5 border border-white/10 rounded-3xl p-6 min-h-[120px] flex items-center justify-center text-center shadow-inner overflow-hidden">
+          <AnimatePresence mode="wait">
+            {aiTranscript ? (
+              <motion.p
+                key="transcript"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="text-gray-200 text-lg font-medium leading-relaxed"
+              >
+                &quot;{aiTranscript.trim()}&quot;
+              </motion.p>
+            ) : (
+              <motion.p
+                key="listening"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-gray-500 italic animate-pulse"
+              >
+                {isConnected ? "Listening..." : "..."}
+              </motion.p>
+            )}
+          </AnimatePresence>
         </div>
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl flex flex-col gap-2 text-red-500 text-sm text-left">
-            <div className="flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 shrink-0" />
-              <p className="font-bold">Connection Issue</p>
-            </div>
-            <p className="opacity-80">{error}</p>
-            <button
-              onClick={() => { setError(null); startSession(); }}
-              className="mt-2 py-2 px-4 bg-red-500/20 rounded-lg hover:bg-red-500/30 transition-colors self-start font-bold"
-            >
-              Try Reconnecting
-            </button>
+          <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl text-red-500 text-xs">
+            <p>{error}</p>
           </div>
         )}
 
-        {/* Volume Slider */}
         <div className="w-full space-y-2 px-4">
           <div className="flex items-center justify-between text-xs font-medium text-gray-500 uppercase tracking-wider">
             <span>Volume Boost</span>
@@ -267,7 +288,7 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
           </div>
         </div>
 
-        <div className="flex items-center justify-center gap-6 pt-4">
+        <div className="flex items-center justify-center gap-4 pt-4">
           <button
             onClick={() => setIsMuted(!isMuted)}
             className={`p-4 rounded-full transition-all ${
@@ -284,6 +305,12 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
             <PhoneOff className="w-8 h-8" />
           </button>
         </div>
+
+        {logs.length > 0 && (
+          <div className="text-[9px] text-gray-600 font-mono text-left opacity-30 max-h-12 overflow-hidden">
+            {logs.map((l, i) => <div key={i}>{l}</div>)}
+          </div>
+        )}
       </div>
     </motion.div>
   );
