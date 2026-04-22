@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { GoogleGenAI, Modality, LiveServerMessage } from "@google/genai";
+import { GoogleGenAI, LiveServerMessage } from "@google/genai";
 import { motion, AnimatePresence } from 'motion/react';
 import { Mic, MicOff, PhoneOff, Loader2, Volume2, AlertCircle, Captions, Languages, CaptionsOff } from 'lucide-react';
 import { AudioStreamer } from '@/lib/audio-utils';
@@ -26,6 +26,7 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
   const sessionRef = useRef<any>(null);
   const isMutedRef = useRef(isMuted);
   const isAiSpeakingRef = useRef(false);
+  const lastAiMessageTimeRef = useRef<number>(0);
 
   useEffect(() => {
     audioStreamerRef.current = new AudioStreamer((base64Data) => {
@@ -73,15 +74,12 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
       const ai = new GoogleGenAI({ apiKey });
       
       const session = await ai.live.connect({
-        model: "gemini-3.1-flash-live-preview",
+        model: "gemini-2.0-flash-exp",
         config: {
-          responseModalities: [Modality.AUDIO],
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: "Algenib" } },
           },
           systemInstruction: "You are Teacher Danner, a friendly and experienced English teacher from Brazil helping students learn English. You have a deep, slightly hoarse and gravelly male voice. You explain things simply, give examples, and encourage students. You never say you are an AI. You respond in English or Portuguese depending on the student. If the student writes in English, lightly and gently correct any mistakes before answering their question. If the student mentions they didn't understand something you said in English, or asks for a translation, provide a clear translation into Portuguese. Keep answers short, practical, and easy to understand. Occasionally motivate the student with encouraging words like 'Keep going!', 'You're doing great!', or 'Vamos lá!'.",
-          inputAudioTranscription: {},
-          outputAudioTranscription: {},
         },
         callbacks: {
           onopen: () => {
@@ -93,13 +91,16 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
             });
           },
           onmessage: (message: LiveServerMessage) => {
-            // Check if this is a new model turn
+            // Check if this is a new model turn or a significant gap in time
+            const now = Date.now();
             if (message.serverContent?.modelTurn) {
-              if (!isAiSpeakingRef.current) {
+              // If AI hasn't spoken for 2+ seconds, treat as new caption block
+              if (!isAiSpeakingRef.current || (now - lastAiMessageTimeRef.current > 2000)) {
                 setAiTranscript('');
                 setTranslatedTranscript('');
                 isAiSpeakingRef.current = true;
               }
+              lastAiMessageTimeRef.current = now;
             }
 
             const base64Audio = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
