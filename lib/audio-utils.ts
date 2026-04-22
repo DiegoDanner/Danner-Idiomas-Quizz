@@ -31,6 +31,7 @@ export class AudioStreamer {
    */
   async init() {
     if (!this.audioContext) {
+      console.log("Initializing AudioContext...");
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
         latencyHint: 'interactive',
       });
@@ -91,7 +92,6 @@ export class AudioStreamer {
       if (!this.audioContext || !this.stream) return;
       this.source = this.audioContext.createMediaStreamSource(this.stream);
       
-      // Using ScriptProcessorNode for simplicity in this environment
       this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
 
       this.processor.onaudioprocess = (e) => {
@@ -150,7 +150,6 @@ export class AudioStreamer {
     const pcmData = this.base64ToArrayBuffer(base64Data);
     const floatData = this.pcmToFloat32(pcmData);
     
-    // Create buffer at 24kHz as Gemini Live sends 24kHz audio
     const audioBuffer = this.audioContext.createBuffer(1, floatData.length, 24000);
     audioBuffer.getChannelData(0).set(floatData);
 
@@ -172,7 +171,6 @@ export class AudioStreamer {
     this.nextStartTime += audioBuffer.duration;
     this.isPlaying = true;
 
-    // Handle speech end callback
     if (this.speechEndTimeout) {
       clearTimeout(this.speechEndTimeout);
     }
