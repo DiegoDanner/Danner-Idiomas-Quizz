@@ -69,19 +69,19 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
 
     setIsConnecting(true);
     setError(null);
-    addLog("Connecting to gemini-2.0-flash...");
+    addLog("Connecting to gemini-2.0-flash-exp...");
 
     try {
       const ai = new GoogleGenAI({ apiKey });
       
       const session = await ai.live.connect({
-        model: "gemini-2.0-flash",
+        model: "gemini-2.0-flash-exp",
         config: {
           systemInstruction: {
             parts: [{ text: "You are Teacher Danner, a friendly English teacher from Brazil helping students learn English. You have a deep, slightly hoarse and gravelly male voice. Explain things simply. Use English mostly, but Portuguese if needed. Be encouraging and focus on meaningful communication. Do not correct trivial errors like capitalization or punctuation unless it significantly changes the meaning." }]
           },
           temperature: 0.7,
-          responseModalities: ["AUDIO" as any],
+          responseModalities: ["AUDIO"],
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: "Algenib" } },
           },
