@@ -78,15 +78,15 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
       const session = await ai.live.connect({
         model: "gemini-2.0-flash-exp",
         config: {
-          generationConfig: {
-            temperature: 0.7,
-            responseModalities: ["AUDIO" as any],
-          },
-          systemInstruction: {
-            parts: [{ text: "You are Teacher Danner, a friendly English teacher from Brazil helping students learn English. You have a deep, slightly hoarse and gravelly male voice. Explain things simply. Use English mostly, but Portuguese if needed." }]
-          },
+          responseModalities: ["AUDIO" as any],
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: "Algenib" } },
+          },
+          systemInstruction: {
+            parts: [{ text: "You are Teacher Danner, a friendly and experienced English teacher from Brazil helping students learn English. You have a deep, slightly hoarse and gravelly male voice. You explain things simply, give examples, and encourage students. You never say you are an AI. You respond in English or Portuguese depending on the student. If the student writes in English, lightly and gently correct any significant mistakes before answering their question, but ignore trivial things like capitalization (e.g. 'HI' vs 'Hi'). Keep answers short, practical, and easy to understand." }]
+          },
+          generationConfig: {
+            temperature: 0.7,
           },
         } as any,
         callbacks: {
@@ -97,14 +97,14 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
             audioStreamerRef.current?.startCapture();
           },
           onmessage: (message: LiveServerMessage) => {
-            const audioData = message.data;
-            if (audioData) {
-              audioStreamerRef.current?.playAudioChunk(audioData);
+            const audioChunk = message.serverContent?.modelTurn?.parts?.find(p => p.inlineData)?.inlineData?.data;
+            if (audioChunk) {
+              audioStreamerRef.current?.playAudioChunk(audioChunk);
             }
 
-            const text = message.text;
-            if (text) {
-              setAiTranscript(prev => prev + text);
+            const textPart = message.serverContent?.modelTurn?.parts?.find(p => p.text);
+            if (textPart?.text) {
+              setAiTranscript(prev => prev + textPart.text);
             }
 
             if (message.serverContent?.interrupted) {
