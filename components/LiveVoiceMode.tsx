@@ -17,6 +17,7 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(2.0); // Default 200%
   const [error, setError] = useState<string | null>(null);
+  const [aiTranscript, setAiTranscript] = useState<string>('');
   const [logs, setLogs] = useState<string[]>([]);
   
   const audioStreamerRef = useRef<AudioStreamer | null>(null);
@@ -26,11 +27,9 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
   useEffect(() => {
     audioStreamerRef.current = new AudioStreamer((base64Data) => {
       if (sessionRef.current && !isMutedRef.current) {
-        const payload = {
+        sessionRef.current.sendRealtimeInput({
           audio: { data: base64Data, mimeType: 'audio/pcm;rate=16000' }
-        };
-        // console.log("[LiveMode] Sending audio payload:", payload.audio.data.substring(0, 50) + "...");
-        sessionRef.current.sendRealtimeInput(payload);
+        });
       }
     });
   }, []);
@@ -71,64 +70,61 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
 
     setIsConnecting(true);
     setError(null);
-    addLog("Connecting to gemini-live-2.5-flash-preview...");
+    addLog("Connecting to gemini-2.0-flash-exp...");
 
     try {
-      // Use v1beta as it's the target for the Live API
-      const ai = new GoogleGenAI({
-        apiKey,
-        httpOptions: { apiVersion: 'v1beta' } as any
-      });
+      const ai = new GoogleGenAI({ apiKey });
       
-      const connectParams = {
-        model: "gemini-live-2.5-flash-preview",
+      const session = await ai.live.connect({
+        model: "gemini-2.0-flash-exp",
         config: {
-          systemInstruction: {
-            parts: [{ text: "You are Teacher Danner, a friendly English teacher. Focus on meaningful communication. Do not correct trivial errors like capitalization." }]
+          generationConfig: {
+            temperature: 0.7,
+            responseModalities: ["AUDIO" as any],
           },
-          // Move fields out of generationConfig to config level as per deprecation warning
-          temperature: 0.7,
-          responseModalities: ["AUDIO" as any],
+          systemInstruction: {
+            parts: [{ text: "You are Teacher Danner, a friendly English teacher from Brazil helping students learn English. You have a deep, slightly hoarse and gravelly male voice. Explain things simply. Use English mostly, but Portuguese if needed." }]
+          },
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: "Algenib" } },
           },
-        },
+        } as any,
         callbacks: {
           onopen: () => {
-            addLog("onopen: Connection Opened");
+            addLog("Connection Opened");
             setIsConnected(true);
             setIsConnecting(false);
             audioStreamerRef.current?.startCapture();
           },
           onmessage: (message: LiveServerMessage) => {
-            console.log("[LiveMode] onmessage received:", message);
             const audioData = message.data;
             if (audioData) {
               audioStreamerRef.current?.playAudioChunk(audioData);
             }
 
+            const text = message.text;
+            if (text) {
+              setAiTranscript(prev => prev + text);
+            }
+
             if (message.serverContent?.interrupted) {
-              addLog("onmessage: Interrupted");
+              setAiTranscript('');
+              addLog("Interrupted");
             }
           },
           onerror: (err: any) => {
-            console.error("[LiveMode] onerror:", err);
-            addLog(`onerror: ${err.message || "WebSocket Error"}`);
+            addLog(`Error: ${err.message || "WebSocket Error"}`);
             setError(`Connection lost: ${err.message || 'Check internet connection'}`);
             stopSession();
           },
           onclose: (event: any) => {
-            console.log("[LiveMode] onclose event:", event);
-            addLog(`onclose: ${event.code || "Unknown"}. Reason: ${event.reason || "None"}`);
+            addLog(`Closed: ${event.code || "Unknown"}`);
             setIsConnected(false);
             setIsConnecting(false);
             stopSession();
           }
         }
-      };
-
-      console.log("[LiveMode] ai.live.connect called with:", JSON.stringify(connectParams, null, 2));
-      const session = await ai.live.connect(connectParams as any);
+      });
 
       sessionRef.current = session;
     } catch (err: any) {
@@ -240,18 +236,30 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
           )}
         </div>
 
-        {/* Listening Indicator */}
-        <div className="w-full bg-white/5 border border-white/10 rounded-3xl p-6 min-h-[80px] flex items-center justify-center text-center shadow-inner overflow-hidden">
+        {/* Transcript Box */}
+        <div className="w-full bg-white/5 border border-white/10 rounded-3xl p-6 min-h-[120px] flex items-center justify-center text-center shadow-inner overflow-hidden">
           <AnimatePresence mode="wait">
-            <motion.p
-              key="listening"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="text-gray-500 italic animate-pulse"
-            >
-              {isConnected ? "Listening for your voice..." : "..."}
-            </motion.p>
+            {aiTranscript ? (
+              <motion.p
+                key="transcript"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="text-gray-200 text-lg font-medium leading-relaxed"
+              >
+                &quot;{aiTranscript.trim()}&quot;
+              </motion.p>
+            ) : (
+              <motion.p
+                key="listening"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-gray-500 italic animate-pulse"
+              >
+                {isConnected ? "Listening..." : "..."}
+              </motion.p>
+            )}
           </AnimatePresence>
         </div>
 
