@@ -71,14 +71,17 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
 
     setIsConnecting(true);
     setError(null);
-    addLog("Connecting to gemini-2.0-flash-exp...");
+    addLog("Connecting to gemini-live-2.5-flash-preview...");
 
     try {
-      // Reverting to default version as v1alpha might have different policy restrictions
-      const ai = new GoogleGenAI({ apiKey });
+      // Use v1beta as it's the target for the Live API
+      const ai = new GoogleGenAI({
+        apiKey,
+        httpOptions: { apiVersion: 'v1beta' } as any
+      });
       
       const connectParams = {
-        model: "gemini-2.0-flash-exp",
+        model: "gemini-live-2.5-flash-preview",
         config: {
           systemInstruction: {
             parts: [{ text: "You are Teacher Danner, a friendly English teacher. Focus on meaningful communication. Do not correct trivial errors like capitalization." }]
