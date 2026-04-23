@@ -26,9 +26,11 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
   useEffect(() => {
     audioStreamerRef.current = new AudioStreamer((base64Data) => {
       if (sessionRef.current && !isMutedRef.current) {
-        sessionRef.current.sendRealtimeInput({
+        const payload = {
           audio: { data: base64Data, mimeType: 'audio/pcm;rate=16000' }
-        });
+        };
+        // console.log("[LiveMode] Sending audio payload:", payload.audio.data.substring(0, 50) + "...");
+        sessionRef.current.sendRealtimeInput(payload);
       }
     });
   }, []);
@@ -72,50 +74,58 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
     addLog("Connecting to gemini-2.0-flash-exp...");
 
     try {
+      // Reverting to default version as v1alpha might have different policy restrictions
       const ai = new GoogleGenAI({ apiKey });
       
-      const session = await ai.live.connect({
+      const connectParams = {
         model: "gemini-2.0-flash-exp",
         config: {
           systemInstruction: {
-            parts: [{ text: "You are Teacher Danner, a friendly English teacher from Brazil helping students learn English. You have a deep, slightly hoarse and gravelly male voice. Explain things simply. Use English mostly, but Portuguese if needed. Be encouraging and focus on meaningful communication. Do not correct trivial errors like capitalization or punctuation unless it significantly changes the meaning." }]
+            parts: [{ text: "You are Teacher Danner, a friendly English teacher. Focus on meaningful communication. Do not correct trivial errors like capitalization." }]
           },
+          // Move fields out of generationConfig to config level as per deprecation warning
           temperature: 0.7,
-          responseModalities: ["AUDIO"],
+          responseModalities: ["AUDIO" as any],
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: "Algenib" } },
           },
-        } as any,
+        },
         callbacks: {
           onopen: () => {
-            addLog("Connection Opened");
+            addLog("onopen: Connection Opened");
             setIsConnected(true);
             setIsConnecting(false);
             audioStreamerRef.current?.startCapture();
           },
           onmessage: (message: LiveServerMessage) => {
+            console.log("[LiveMode] onmessage received:", message);
             const audioData = message.data;
             if (audioData) {
               audioStreamerRef.current?.playAudioChunk(audioData);
             }
 
             if (message.serverContent?.interrupted) {
-              addLog("Interrupted");
+              addLog("onmessage: Interrupted");
             }
           },
           onerror: (err: any) => {
-            addLog(`Error: ${err.message || "WebSocket Error"}`);
+            console.error("[LiveMode] onerror:", err);
+            addLog(`onerror: ${err.message || "WebSocket Error"}`);
             setError(`Connection lost: ${err.message || 'Check internet connection'}`);
             stopSession();
           },
           onclose: (event: any) => {
-            addLog(`Closed: ${event.code || "Unknown"}`);
+            console.log("[LiveMode] onclose event:", event);
+            addLog(`onclose: ${event.code || "Unknown"}. Reason: ${event.reason || "None"}`);
             setIsConnected(false);
             setIsConnecting(false);
             stopSession();
           }
         }
-      });
+      };
+
+      console.log("[LiveMode] ai.live.connect called with:", JSON.stringify(connectParams, null, 2));
+      const session = await ai.live.connect(connectParams as any);
 
       sessionRef.current = session;
     } catch (err: any) {
