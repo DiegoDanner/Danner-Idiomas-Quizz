@@ -17,7 +17,6 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(2.0); // Default 200%
   const [error, setError] = useState<string | null>(null);
-  const [aiTranscript, setAiTranscript] = useState<string>('');
   const [logs, setLogs] = useState<string[]>([]);
   
   const audioStreamerRef = useRef<AudioStreamer | null>(null);
@@ -70,21 +69,19 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
 
     setIsConnecting(true);
     setError(null);
-    addLog("Connecting to gemini-2.0-flash-exp...");
+    addLog("Connecting to gemini-2.0-flash...");
 
     try {
       const ai = new GoogleGenAI({ apiKey });
       
       const session = await ai.live.connect({
-        model: "gemini-2.0-flash-exp",
+        model: "gemini-2.0-flash",
         config: {
-          generationConfig: {
-            temperature: 0.7,
-            responseModalities: ["AUDIO" as any],
-          },
           systemInstruction: {
-            parts: [{ text: "You are Teacher Danner, a friendly English teacher from Brazil helping students learn English. You have a deep, slightly hoarse and gravelly male voice. Explain things simply. Use English mostly, but Portuguese if needed." }]
+            parts: [{ text: "You are Teacher Danner, a friendly English teacher from Brazil helping students learn English. You have a deep, slightly hoarse and gravelly male voice. Explain things simply. Use English mostly, but Portuguese if needed. Be encouraging and focus on meaningful communication. Do not correct trivial errors like capitalization or punctuation unless it significantly changes the meaning." }]
           },
+          temperature: 0.7,
+          responseModalities: ["AUDIO" as any],
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: "Algenib" } },
           },
@@ -102,13 +99,7 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
               audioStreamerRef.current?.playAudioChunk(audioData);
             }
 
-            const text = message.text;
-            if (text) {
-              setAiTranscript(prev => prev + text);
-            }
-
             if (message.serverContent?.interrupted) {
-              setAiTranscript('');
               addLog("Interrupted");
             }
           },
@@ -236,30 +227,18 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
           )}
         </div>
 
-        {/* Transcript Box */}
-        <div className="w-full bg-white/5 border border-white/10 rounded-3xl p-6 min-h-[120px] flex items-center justify-center text-center shadow-inner overflow-hidden">
+        {/* Listening Indicator */}
+        <div className="w-full bg-white/5 border border-white/10 rounded-3xl p-6 min-h-[80px] flex items-center justify-center text-center shadow-inner overflow-hidden">
           <AnimatePresence mode="wait">
-            {aiTranscript ? (
-              <motion.p
-                key="transcript"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="text-gray-200 text-lg font-medium leading-relaxed"
-              >
-                &quot;{aiTranscript.trim()}&quot;
-              </motion.p>
-            ) : (
-              <motion.p
-                key="listening"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="text-gray-500 italic animate-pulse"
-              >
-                {isConnected ? "Listening..." : "..."}
-              </motion.p>
-            )}
+            <motion.p
+              key="listening"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="text-gray-500 italic animate-pulse"
+            >
+              {isConnected ? "Listening for your voice..." : "..."}
+            </motion.p>
           </AnimatePresence>
         </div>
 
