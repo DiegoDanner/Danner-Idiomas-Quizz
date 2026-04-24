@@ -164,6 +164,17 @@ const QUIZZES = [
     href: '/storytelling',
     skipAuth: true,
   },
+  {
+    title: 'Vocab Speed Game',
+    description: 'Challenge your vocabulary speed! Select a category and say as many words as you can before time runs out.',
+    icon: Zap,
+    iconColor: 'text-yellow-500',
+    iconBg: 'bg-yellow-500/10',
+    actionText: 'Start Game',
+    actionColor: 'text-yellow-500',
+    href: '/quiz/vocab-speed-game',
+    skipAuth: true,
+  },
 ];
 
 
