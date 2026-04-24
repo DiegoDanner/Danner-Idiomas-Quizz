@@ -73,8 +73,7 @@ export default function MonthsOfTheYearPage() {
   useEffect(() => {
     if (!started || currentIndexRef.current >= MONTHS.length) return;
 
-    // @ts-expect-error - Web Speech API is not fully typed in TS
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       setError("Speech recognition is not supported in this browser. Please use Chrome.");
       return;
