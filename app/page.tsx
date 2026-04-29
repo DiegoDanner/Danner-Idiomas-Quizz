@@ -175,6 +175,17 @@ const QUIZZES = [
     href: '/quiz/vocab-speed-game',
     skipAuth: true,
   },
+  {
+    title: 'Vocab Cards',
+    description: 'Learn vocabulary through interactive sorting cards. Drag and drop words into their correct categories.',
+    icon: Puzzle,
+    iconColor: 'text-[#6cb2ff]',
+    iconBg: 'bg-[#6cb2ff]/10',
+    actionText: 'Play Game',
+    actionColor: 'text-[#6cb2ff]',
+    href: '/quiz/vocab-cards',
+    skipAuth: true,
+  },
 ];
 
 
