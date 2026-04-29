@@ -506,7 +506,7 @@ export default function VocabCardsPage() {
     <main className="min-h-screen bg-[#489552] text-white font-sans overflow-y-auto overflow-x-hidden flex flex-col select-none relative pt-24 pb-24">
       <Navbar />
 
-      <div className="max-w-7xl mx-auto px-6 w-full mb-6 z-50 relative mt-4">
+      <div className="max-w-7xl mx-auto px-6 w-full mb-6 z-50 relative mt-8 sm:mt-12 ml-20 sm:ml-32">
         <Link href="/#quizzes">
           <motion.button
             whileHover={{ x: -4 }}
@@ -519,7 +519,7 @@ export default function VocabCardsPage() {
       </div>
 
       {/* Moves Banner - Top Left */}
-      <div className="absolute top-0 left-0 sm:left-2 flex flex-col items-center z-50 pointer-events-none">
+      <div className="absolute top-[72px] left-0 sm:left-6 flex flex-col items-center mt-2 z-50 pointer-events-none">
         <div className="bg-[#3AA34C] text-[#1B4E26] pt-4 pb-6 w-[60px] sm:w-[90px] flex flex-col items-center shadow-lg relative rounded-b-sm pointer-events-auto"
              style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 85%, 0 100%)' }}>
           <span className="text-[9px] sm:text-[11px] font-bold tracking-tight opacity-80 mb-0.5">Moves</span>
@@ -557,7 +557,7 @@ export default function VocabCardsPage() {
       </div>
 
       {/* Deck & Table Area - Top Right */}
-      <div className="absolute top-6 right-4 sm:right-6 z-50 flex flex-row items-start gap-3 sm:gap-6">
+      <div className="absolute top-[88px] right-4 sm:right-12 z-50 flex flex-row items-start gap-3 sm:gap-6">
 
         {/* Drawn Cards Area (tableCards) */}
         <div
@@ -627,7 +627,7 @@ export default function VocabCardsPage() {
         </motion.div>
       </div>
 
-      <div className="flex-1 w-full max-w-3xl mx-auto mt-[140px] sm:mt-[200px] px-2 flex justify-center gap-2 sm:gap-6 pb-12">
+      <div className="flex-1 w-full max-w-3xl mx-auto mt-[220px] sm:mt-[260px] px-2 flex justify-center gap-2 sm:gap-6 pb-12">
         <AnimatePresence>
           {categories.map((cat, idx) => {
             const col = holding[idx] || [];
