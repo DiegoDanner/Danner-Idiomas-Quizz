@@ -64,7 +64,7 @@ export default function QuizCard({
     if (href) {
       performAction(() => {
         if (href.startsWith('http')) {
-          window.open(href, '_blank', 'noopener,noreferrer');
+          window.location.href = href;
         } else {
           router.push(href);
         }
