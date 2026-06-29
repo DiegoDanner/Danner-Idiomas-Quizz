@@ -204,9 +204,9 @@ const QUIZZES = [
     icon: BookOpen,
     iconColor: 'text-teal-500',
     iconBg: 'bg-teal-500/10',
-    actionText: 'View Repository',
+    actionText: 'Start Review',
     actionColor: 'text-teal-500',
-    href: 'https://github.com/DiegoDanner/English-Review-',
+    href: '/quiz/english-review',
     skipAuth: true,
   },
 ];

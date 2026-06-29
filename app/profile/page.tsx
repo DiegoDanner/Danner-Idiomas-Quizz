@@ -22,6 +22,7 @@ const QUIZ_NAMES: Record<string, string> = {
   'object-pronouns': 'Object Pronouns Quiz',
   'third-person': 'Third Person Quiz',
   'practice-questions': 'Questions to Practice',
+  'english-review': 'English Review',
 };
 
 
