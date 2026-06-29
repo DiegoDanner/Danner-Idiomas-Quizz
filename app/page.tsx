@@ -198,6 +198,17 @@ const QUIZZES = [
     href: 'https://englishtest-danneridiomas.netlify.app/',
     skipAuth: true,
   },
+  {
+    title: 'English Review',
+    description: 'English review from lessons 1 to 4 Interchange Book Intro.',
+    icon: BookOpen,
+    iconColor: 'text-teal-500',
+    iconBg: 'bg-teal-500/10',
+    actionText: 'View Repository',
+    actionColor: 'text-teal-500',
+    href: 'https://github.com/DiegoDanner/English-Review-',
+    skipAuth: true,
+  },
 ];
 
 

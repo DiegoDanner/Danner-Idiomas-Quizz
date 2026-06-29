@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { getUserProgress } from '@/lib/progress';
 import Navbar from '@/components/Navbar';
-import { Trophy, Calendar, CheckCircle, User as UserIcon, Loader2 } from 'lucide-react';
+import { Trophy, Calendar, CheckCircle, User as UserIcon, Loader2, Mail } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -54,6 +54,29 @@ export default function ProfilePage() {
   const totalQuestions = progress.reduce((acc, curr) => acc + curr.total_questions, 0);
   const averageScore = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
 
+  const handleEmailTeacher = () => {
+    const studentName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Student';
+    const emailSubject = `Learning Progress Report: ${studentName}`;
+
+    let emailBody = `Hello Teacher,\n\nHere is the progress report for ${studentName}:\n\n`;
+    emailBody += `Total Quizzes Completed: ${totalQuizzes}\n`;
+    emailBody += `Average Score: ${averageScore}%\n\n`;
+    emailBody += `Detailed Results:\n`;
+    emailBody += `-----------------\n`;
+
+    progress.forEach(record => {
+      const quizName = QUIZ_NAMES[record.quiz_id] || record.quiz_id;
+      const date = new Date(record.completed_at).toLocaleDateString();
+      const accuracy = Math.round((record.score / record.total_questions) * 100);
+      emailBody += `- ${quizName} (${date}): ${record.score}/${record.total_questions} (${accuracy}%)\n`;
+    });
+
+    emailBody += `\nBest regards,\n${studentName}`;
+
+    const mailtoLink = `mailto:diegodanner@gmail.com?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+    window.location.href = mailtoLink;
+  };
+
   return (
     <>
       <Navbar />
@@ -87,7 +110,7 @@ export default function ProfilePage() {
               </h2>
               <p className="text-gray-500 dark:text-[#a5abbb] text-sm mb-6">{user.email}</p>
               
-              <div className="grid grid-cols-2 gap-4 pt-6 border-t border-gray-200 dark:border-[#424855]/10">
+              <div className="grid grid-cols-2 gap-4 pt-6 border-t border-gray-200 dark:border-[#424855]/10 mb-6">
                 <div className="text-center">
                   <div className="text-2xl font-black text-[#6cb2ff]">{totalQuizzes}</div>
                   <div className="text-[10px] uppercase tracking-wider font-bold text-gray-400">Quizzes</div>
@@ -97,6 +120,16 @@ export default function ProfilePage() {
                   <div className="text-[10px] uppercase tracking-wider font-bold text-gray-400">Avg Score</div>
                 </div>
               </div>
+
+              {progress.length > 0 && (
+                <button
+                  onClick={handleEmailTeacher}
+                  className="w-full bg-[#6cb2ff]/10 hover:bg-[#6cb2ff]/20 text-[#6cb2ff] border border-[#6cb2ff]/30 transition-colors py-3 rounded-xl font-bold flex items-center justify-center gap-2 text-sm"
+                >
+                  <Mail className="w-4 h-4" />
+                  Email Result to Teacher
+                </button>
+              )}
             </div>
           </motion.div>
 
