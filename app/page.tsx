@@ -15,7 +15,8 @@ import {
   Frown,
   HeartPulse,
   Calendar,
-  BookOpen
+  BookOpen,
+  GraduationCap
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import QuizCard from '@/components/QuizCard';
@@ -184,6 +185,17 @@ const QUIZZES = [
     actionText: 'Play Game',
     actionColor: 'text-[#6cb2ff]',
     href: '/quiz/vocab-cards',
+    skipAuth: true,
+  },
+  {
+    title: 'Placement Test',
+    description: 'Find out your English level. Take our comprehensive placement test to get personalized recommendations.',
+    icon: GraduationCap,
+    iconColor: 'text-rose-500',
+    iconBg: 'bg-rose-500/10',
+    actionText: 'Take Test',
+    actionColor: 'text-rose-500',
+    href: 'https://englishtest-danneridiomas.netlify.app/',
     skipAuth: true,
   },
 ];
