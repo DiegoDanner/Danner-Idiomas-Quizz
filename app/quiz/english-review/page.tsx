@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Timer,
@@ -111,6 +111,19 @@ export default function QuizApp() {
     }
   };
 
+  const q = quizData[currentQuestionIndex];
+  const progressPercent = (currentQuestionIndex / quizData.length) * 100;
+
+  const shuffledOptions = useMemo(() => {
+    if (!q || !q.options) return [];
+    const optionsCopy = [...q.options];
+    for (let i = optionsCopy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [optionsCopy[i], optionsCopy[j]] = [optionsCopy[j], optionsCopy[i]];
+    }
+    return optionsCopy;
+  }, [q]);
+
   if (quizState === "start") {
     return (
       <div className="h-screen flex items-center justify-center p-6 font-sans bg-slate-50">
@@ -211,9 +224,6 @@ export default function QuizApp() {
       </div>
     );
   }
-
-  const q = quizData[currentQuestionIndex];
-  const progressPercent = (currentQuestionIndex / quizData.length) * 100;
 
   return (
     <div className="h-screen bg-slate-50 font-sans flex flex-col overflow-hidden select-none" onKeyDown={handleKeyDown}>
@@ -323,9 +333,9 @@ export default function QuizApp() {
                       </p>
                     </div>
 
-                    {q.options && (
+                    {shuffledOptions.length > 0 && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
-                        {q.options.map((opt) => (
+                        {shuffledOptions.map((opt) => (
                           <button
                             key={opt}
                             onClick={() => setSelectedAnswer(opt)}
