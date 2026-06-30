@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Timer,
@@ -397,24 +397,8 @@ export default function QuizApp() {
       </main>
 
       {/* Bottom Navigation */}
-      <footer className="bg-white border-t border-slate-200 px-6 sm:px-12 py-4 sm:py-6 flex flex-col-reverse sm:flex-row items-center justify-between gap-4 shrink-0 z-10">
-        <button
-          onClick={() => {
-            setCurrentQuestionIndex((i) => i - 1);
-            setSelectedAnswer("");
-            setIsAnswerChecked(false);
-            setIsCorrect(false);
-            setTimeLeft(30);
-          }}
-          disabled={currentQuestionIndex === 0 || isAnswerChecked}
-          className={`w-full sm:w-auto px-8 py-3 rounded-2xl font-bold text-slate-400 border-2 border-slate-200 transition-all ${
-            currentQuestionIndex === 0 || isAnswerChecked ? "opacity-50 cursor-not-allowed" : "hover:bg-slate-50 hover:text-slate-600"
-          }`}
-        >
-          Previous
-        </button>
-
-        <div className="flex items-center gap-4 w-full sm:w-auto">
+      <footer className="bg-white border-t border-slate-200 px-6 sm:px-12 py-4 sm:py-6 flex flex-col-reverse sm:flex-row items-center justify-center gap-4 shrink-0 z-10">
+        <div className="flex items-center gap-4 w-full sm:w-auto justify-center">
           {!isAnswerChecked ? (
             <>
               <button
@@ -423,9 +407,9 @@ export default function QuizApp() {
                   setIsCorrect(false);
                   setIsAnswerChecked(true);
                 }}
-                className="px-6 py-2 text-slate-400 font-semibold hover:text-slate-600 hidden sm:block"
+                className="px-6 py-2 text-slate-400 font-semibold hover:text-slate-600 block"
               >
-                Skip
+                Desistir
               </button>
               <button
                 onClick={handleCheck}
