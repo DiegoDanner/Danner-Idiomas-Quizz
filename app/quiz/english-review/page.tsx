@@ -239,6 +239,13 @@ export default function QuizApp() {
         </div>
 
         <div className="flex items-center gap-4 sm:gap-6">
+          <Link
+            href="/"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-2xl border bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors"
+          >
+            <Home className="w-5 h-5" />
+            <span className="font-bold hidden sm:block">Menu</span>
+          </Link>
           <div className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-2xl border transition-colors ${
             timeLeft <= 5 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" : "bg-amber-50 border-amber-100 text-amber-700"
           }`}>
