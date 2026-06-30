@@ -193,6 +193,24 @@ export default function QuizApp() {
               <RotateCcw size={22} />
               Try Again
             </button>
+            <button
+              onClick={() => {
+                const studentName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Student';
+                const emailSubject = `English Review Results: ${studentName}`;
+
+                let emailBody = `Hello Teacher,\n\nHere are the results for the English Review:\n\n`;
+                emailBody += `Score: ${score} out of ${quizData.length}\n`;
+                emailBody += `Accuracy: ${accuracy}%\n\n`;
+                emailBody += `Performance: ${performanceLevel}\n\n`;
+                emailBody += `Best regards,\n${studentName}`;
+
+                const mailtoLink = `mailto:diegodanner@gmail.com?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+                window.location.href = mailtoLink;
+              }}
+              className="flex-1 flex justify-center items-center gap-2 bg-[#6cb2ff]/10 text-[#6cb2ff] border-2 border-[#6cb2ff]/30 px-6 py-4 rounded-2xl text-lg font-bold hover:bg-[#6cb2ff]/20 transition-all active:scale-95"
+            >
+              Email Result to Teacher
+            </button>
             <Link
               href="/"
               className="flex-1 flex justify-center items-center gap-2 bg-white text-slate-500 border-2 border-slate-200 px-6 py-4 rounded-2xl text-lg font-bold hover:bg-slate-50 hover:text-slate-700 transition-all active:scale-95"
@@ -201,25 +219,6 @@ export default function QuizApp() {
               Home
             </Link>
           </div>
-
-          <button
-            onClick={() => {
-              const studentName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Student';
-              const emailSubject = `English Review Results: ${studentName}`;
-
-              let emailBody = `Hello Teacher,\n\nHere are the results for the English Review:\n\n`;
-              emailBody += `Score: ${score} out of ${quizData.length}\n`;
-              emailBody += `Accuracy: ${accuracy}%\n\n`;
-              emailBody += `Performance: ${performanceLevel}\n\n`;
-              emailBody += `Best regards,\n${studentName}`;
-
-              const mailtoLink = `mailto:diegodanner@gmail.com?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
-              window.location.href = mailtoLink;
-            }}
-            className="mt-6 w-full flex justify-center items-center gap-2 bg-[#6cb2ff]/10 text-[#6cb2ff] border-2 border-[#6cb2ff]/30 px-6 py-4 rounded-2xl text-lg font-bold hover:bg-[#6cb2ff]/20 transition-all active:scale-95"
-          >
-            Email Result to Teacher
-          </button>
         </motion.div>
       </div>
     );
