@@ -397,7 +397,7 @@ export default function QuizApp() {
       </main>
 
       {/* Bottom Navigation */}
-      <footer className="bg-white border-t border-slate-200 px-6 sm:px-12 py-4 sm:py-6 flex flex-col-reverse sm:flex-row items-center justify-center gap-4 shrink-0 z-10">
+      <footer className="bg-white border-t border-slate-200 px-6 sm:px-12 pb-24 pt-4 sm:py-6 flex flex-col-reverse sm:flex-row items-center justify-center gap-4 shrink-0 z-10">
         <div className="flex items-center gap-4 w-full sm:w-auto justify-center">
           {!isAnswerChecked ? (
             <>
