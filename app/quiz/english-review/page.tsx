@@ -16,6 +16,8 @@ import {
 import { quizData, QuestionData } from "@/lib/quizDataEnglishReview";
 import Link from "next/link";
 import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/lib/supabase';
+import { Loader2 } from 'lucide-react';
 
 type QuizState = "start" | "playing" | "results";
 
@@ -29,7 +31,19 @@ export default function QuizApp() {
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(30);
 
+  // New state variables for detailed results submission
+  const [startTime, setStartTime] = useState<number>(0);
+  const [userAnswersHistory, setUserAnswersHistory] = useState<any[]>([]);
+  const [submitState, setSubmitState] = useState<"idle" | "loading" | "success" | "error">("idle");
+
+
   // Timer logic
+  useEffect(() => {
+    if (quizState === "playing" && startTime === 0) {
+      setStartTime(Date.now());
+    }
+  }, [quizState, startTime]);
+
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (quizState === "playing" && !isAnswerChecked && timeLeft > 0) {
@@ -51,6 +65,9 @@ export default function QuizApp() {
     setSelectedAnswer("");
     setIsAnswerChecked(false);
     setIsCorrect(false);
+    setStartTime(0);
+    setUserAnswersHistory([]);
+    setSubmitState("idle");
   };
 
   const speak = (text: string) => {
@@ -77,8 +94,53 @@ export default function QuizApp() {
     setIsCorrect(isAnsCorrect);
     setIsAnswerChecked(true);
 
+    setUserAnswersHistory((prev) => [
+      ...prev,
+      {
+        question: q.instruction,
+        correctAnswer: q.correctAnswer,
+        userAnswer: selectedAnswer,
+        isCorrect: isAnsCorrect,
+      },
+    ]);
+
     if (isAnsCorrect) {
       setScore((s) => s + 1);
+    }
+  };
+
+
+  const submitDetailedResults = async () => {
+    setSubmitState("loading");
+
+    // Calculate final elapsed time
+    let elapsedSeconds = 0;
+    if (startTime > 0) {
+      elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+    }
+
+    const accuracy = Math.round((score / quizData.length) * 100);
+    const studentName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Student';
+
+    try {
+      const { error } = await supabase.from('quiz_submissions').insert([
+        {
+          student_name: studentName,
+          class_name: 'English Review',
+          score: score,
+          percentage: accuracy,
+          time_taken: elapsedSeconds,
+          answers: userAnswersHistory,
+        }
+      ]);
+
+      if (error) {
+        throw error;
+      }
+      setSubmitState("success");
+    } catch (err) {
+      console.error("Failed to submit results:", err);
+      setSubmitState("error");
     }
   };
 
@@ -98,6 +160,7 @@ export default function QuizApp() {
         });
       });
       setQuizState("results");
+      submitDetailedResults();
     }
   };
 
@@ -193,24 +256,31 @@ export default function QuizApp() {
               <RotateCcw size={22} />
               Try Again
             </button>
-            <button
-              onClick={() => {
-                const studentName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Student';
-                const emailSubject = `English Review Results: ${studentName}`;
 
-                let emailBody = `Hello Teacher,\n\nHere are the results for the English Review:\n\n`;
-                emailBody += `Score: ${score} out of ${quizData.length}\n`;
-                emailBody += `Accuracy: ${accuracy}%\n\n`;
-                emailBody += `Performance: ${performanceLevel}\n\n`;
-                emailBody += `Best regards,\n${studentName}`;
+            {submitState === "loading" && (
+              <div className="flex-1 flex justify-center items-center gap-2 bg-blue-50 text-blue-600 border-2 border-blue-200 px-6 py-4 rounded-2xl text-lg font-bold">
+                <Loader2 className="w-6 h-6 animate-spin" />
+                Submitting results...
+              </div>
+            )}
 
-                const mailtoLink = `mailto:diegodanner@gmail.com?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
-                window.location.href = mailtoLink;
-              }}
-              className="flex-1 flex justify-center items-center gap-2 bg-[#6cb2ff]/10 text-[#6cb2ff] border-2 border-[#6cb2ff]/30 px-6 py-4 rounded-2xl text-lg font-bold hover:bg-[#6cb2ff]/20 transition-all active:scale-95"
-            >
-              Email Result to Teacher
-            </button>
+            {submitState === "success" && (
+              <div className="flex-1 flex justify-center items-center gap-2 bg-emerald-50 text-emerald-600 border-2 border-emerald-200 px-6 py-4 rounded-2xl text-lg font-bold">
+                <Check className="w-6 h-6" />
+                Your results have been submitted successfully.
+              </div>
+            )}
+
+            {submitState === "error" && (
+              <button
+                onClick={submitDetailedResults}
+                className="flex-1 flex justify-center items-center gap-2 bg-rose-50 text-rose-600 border-2 border-rose-200 px-6 py-4 rounded-2xl text-lg font-bold hover:bg-rose-100 transition-all active:scale-95"
+              >
+                <RotateCcw className="w-6 h-6" />
+                Failed to submit. Click to retry.
+              </button>
+            )}
+
             <Link
               href="/"
               className="flex-1 flex justify-center items-center gap-2 bg-white text-slate-500 border-2 border-slate-200 px-6 py-4 rounded-2xl text-lg font-bold hover:bg-slate-50 hover:text-slate-700 transition-all active:scale-95"
