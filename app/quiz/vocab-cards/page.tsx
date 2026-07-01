@@ -6,6 +6,8 @@ import { ArrowLeft } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, PanInfo } from 'motion/react';
 import { Volume2, VolumeX, Crown, Shuffle } from 'lucide-react';
+import { useAuthAction } from '@/hooks/useAuthAction';
+import AuthModal from '@/components/AuthModal';
 
 const BLOWOUT_PIECES = Array.from({ length: 120 }).map(() => {
   const depth = Math.random();
@@ -298,6 +300,8 @@ const fx = new AudioFX();
 // ==========================================
 
 export default function VocabCardsPage() {
+  const { performAction, showAuthModal, setShowAuthModal } = useAuthAction();
+  const [started, setStarted] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [moves, setMoves] = useState(0);
   const deckShake = false;
@@ -501,6 +505,25 @@ export default function VocabCardsPage() {
   if (!mounted) return null;
 
   const isGameCompleted = categories.length === 0 && tableCards.length === 0 && holding.every(c => c.length === 0);
+
+  if (!started) {
+    return (
+      <main className="min-h-screen bg-[#489552] text-white font-sans overflow-y-auto overflow-x-hidden flex flex-col select-none relative pt-24 pb-24 items-center justify-center">
+        <Navbar />
+        <div className="text-center z-10 px-4">
+          <h1 className="text-5xl font-black mb-6 drop-shadow-md text-[#F2C94C]">Vocab Cards</h1>
+          <p className="text-xl mb-12 max-w-lg mx-auto opacity-90 drop-shadow-sm">Sort the vocabulary cards into their correct categories as quickly as you can!</p>
+          <button
+            onClick={() => performAction(() => setStarted(true))}
+            className="bg-[#F2C94C] hover:bg-[#d4ac36] text-black font-bold py-4 px-12 rounded-full text-2xl shadow-lg transition-transform hover:scale-105 active:scale-95"
+          >
+            Start Game
+          </button>
+        </div>
+        <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#489552] text-white font-sans overflow-y-auto overflow-x-hidden flex flex-col select-none relative pt-24 pb-24">

@@ -18,11 +18,14 @@ import Link from "next/link";
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Loader2 } from 'lucide-react';
+import { useAuthAction } from '@/hooks/useAuthAction';
+import AuthModal from '@/components/AuthModal';
 
 type QuizState = "start" | "playing" | "results";
 
 export default function QuizApp() {
   const { user } = useAuth();
+  const { performAction, showAuthModal, setShowAuthModal } = useAuthAction();
   const [quizState, setQuizState] = useState<QuizState>("start");
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
@@ -226,30 +229,33 @@ export default function QuizApp() {
 
   if (quizState === "start") {
     return (
-      <div className="h-screen flex items-center justify-center p-6 font-sans bg-slate-50">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-white p-10 md:p-16 rounded-[32px] shadow-xl shadow-slate-200/50 max-w-lg w-full text-center border border-slate-100 relative"
-        >
-          <div className="w-24 h-24 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-8">
-            <BookOpen size={48} />
-          </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-slate-800 mb-4 leading-tight">
-            English <span className="text-blue-600">Mastery</span>
-          </h1>
-          <p className="text-lg text-slate-600 mb-10 leading-relaxed">
-            Master your English grammar through interactive exercises.
-          </p>
-          <button
-            onClick={() => setQuizState("playing")}
-            className="w-full flex items-center justify-center gap-3 bg-blue-600 text-white px-8 py-4 rounded-2xl text-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 active:scale-95"
+      <>
+        <div className="h-screen flex items-center justify-center p-6 font-sans bg-slate-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white p-10 md:p-16 rounded-[32px] shadow-xl shadow-slate-200/50 max-w-lg w-full text-center border border-slate-100 relative"
           >
-            <Play fill="currentColor" size={24} />
-            Start Learning
-          </button>
-        </motion.div>
-      </div>
+            <div className="w-24 h-24 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-8">
+              <BookOpen size={48} />
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold text-slate-800 mb-4 leading-tight">
+              English <span className="text-blue-600">Mastery</span>
+            </h1>
+            <p className="text-lg text-slate-600 mb-10 leading-relaxed">
+              Master your English grammar through interactive exercises.
+            </p>
+            <button
+              onClick={() => performAction(() => setQuizState("playing"))}
+              className="w-full flex items-center justify-center gap-3 bg-blue-600 text-white px-8 py-4 rounded-2xl text-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 active:scale-95"
+            >
+              <Play fill="currentColor" size={24} />
+              Start Learning
+            </button>
+          </motion.div>
+        </div>
+        <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      </>
     );
   }
 
@@ -560,6 +566,7 @@ export default function QuizApp() {
           )}
         </div>
       </footer>
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </div>
   );
 }

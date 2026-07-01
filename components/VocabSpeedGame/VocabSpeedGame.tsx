@@ -20,6 +20,8 @@ import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
 import { CATEGORIES, Category } from '@/lib/vocab-speed-game-data';
 import confetti from 'canvas-confetti';
+import { useAuthAction } from '@/hooks/useAuthAction';
+import AuthModal from '@/components/AuthModal';
 
 // Speech Recognition Types
 interface SpeechRecognitionEvent extends Event {
@@ -75,6 +77,7 @@ const getGameDuration = (wordCount: number) => {
 };
 
 export default function VocabSpeedGame() {
+  const { performAction, showAuthModal, setShowAuthModal } = useAuthAction();
   const [gameState, setGameState] = useState<'menu' | 'playing' | 'finished'>('menu');
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [score, setScore] = useState(0);
@@ -231,35 +234,37 @@ export default function VocabSpeedGame() {
   }, [gameState, processWords, stopGame]);
 
   const startGame = (category: Category) => {
-    const gameTime = getGameDuration(category.words.length);
+    performAction(() => {
+      const gameTime = getGameDuration(category.words.length);
 
-    setSelectedCategory(category);
-    selectedCategoryRef.current = category;
+      setSelectedCategory(category);
+      selectedCategoryRef.current = category;
 
-    setScore(0);
-    scoreRef.current = 0;
+      setScore(0);
+      scoreRef.current = 0;
 
-    setTimeLeft(gameTime);
+      setTimeLeft(gameTime);
 
-    setUsedWords(new Set());
-    usedWordsRef.current = new Set();
+      setUsedWords(new Set());
+      usedWordsRef.current = new Set();
 
-    setGameState('playing');
-    setIsListening(true);
-    setError(null);
-    setCurrentTranscript('');
+      setGameState('playing');
+      setIsListening(true);
+      setError(null);
+      setCurrentTranscript('');
 
-    // Start Timer
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          stopGame();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+      // Start Timer
+      if (timerRef.current) clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            stopGame();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    });
   };
 
   const resetToMenu = () => {
@@ -280,6 +285,7 @@ export default function VocabSpeedGame() {
     ];
 
     return (
+      <>
       <div className="min-h-screen font-headline pb-20">
         <main className="max-w-7xl mx-auto px-6 py-12">
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -336,6 +342,8 @@ export default function VocabSpeedGame() {
           </div>
         </main>
       </div>
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      </>
     );
   }
 
@@ -451,6 +459,7 @@ export default function VocabSpeedGame() {
     const missedWords = selectedCategory?.words.filter(w => !usedWords.has(w)) || [];
 
     return (
+      <>
       <div className="max-w-2xl mx-auto p-6 space-y-8 font-headline">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
@@ -526,8 +535,12 @@ export default function VocabSpeedGame() {
           </Button>
         </div>
       </div>
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      </>
     );
   }
 
-  return null;
+  return (
+    <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+  );
 }
