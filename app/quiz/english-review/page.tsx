@@ -142,26 +142,32 @@ export default function QuizApp() {
       const incorrectAnswers = userAnswersHistory.filter(ans => !ans.isCorrect);
 
       const payload = {
-        student_name: studentName,
-        class_name: 'English Review',
-        score: score,
-        percentage: accuracy,
-        time_taken: elapsedSeconds,
-        incorrect_answers: incorrectAnswers,
+        type: "INSERT",
+        table: "quiz_submissions",
+        record: {
+          student_name: studentName,
+          class_name: 'English Review',
+          score: score,
+          percentage: accuracy,
+          time_taken: elapsedSeconds,
+          answers: userAnswersHistory,
+          incorrect_answers: incorrectAnswers,
+        }
       };
 
       const googleAppsScriptUrl = process.env.NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbw5xcyVPhgNCn4yWFm1HqSswvYINcNG_zkoFhs_sNCPDy4R28pgpdaXhSVA2Y24IG2B/exec";
 
       if (googleAppsScriptUrl) {
         try {
-          await fetch(googleAppsScriptUrl, {
+          console.log("Sending email notification to Google Apps Script...");
+          const res = await fetch(googleAppsScriptUrl, {
             method: 'POST',
-            mode: 'no-cors',
             headers: {
-              'Content-Type': 'application/json',
+              'Content-Type': 'text/plain;charset=utf-8',
             },
             body: JSON.stringify(payload)
           });
+          console.log("Google Apps Script response status:", res.status);
         } catch (fetchErr) {
           console.error("Failed to send email via Google Apps Script:", fetchErr);
           // We don't throw here because the primary action (saving to Supabase) succeeded
