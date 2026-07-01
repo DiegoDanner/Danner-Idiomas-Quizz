@@ -137,6 +137,43 @@ export default function QuizApp() {
       if (error) {
         throw error;
       }
+
+      // After successful Supabase insert, send email via Google Apps Script Web App
+      const incorrectAnswers = userAnswersHistory.filter(ans => !ans.isCorrect);
+
+      const payload = {
+        type: "INSERT",
+        table: "quiz_submissions",
+        record: {
+          student_name: studentName,
+          class_name: 'English Review',
+          score: score,
+          percentage: accuracy,
+          time_taken: elapsedSeconds,
+          answers: userAnswersHistory,
+          incorrect_answers: incorrectAnswers,
+        }
+      };
+
+      const googleAppsScriptUrl = process.env.NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbw5xcyVPhgNCn4yWFm1HqSswvYINcNG_zkoFhs_sNCPDy4R28pgpdaXhSVA2Y24IG2B/exec";
+
+      if (googleAppsScriptUrl) {
+        try {
+          console.log("Sending email notification to Google Apps Script...");
+          const res = await fetch(googleAppsScriptUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'text/plain;charset=utf-8',
+            },
+            body: JSON.stringify(payload)
+          });
+          console.log("Google Apps Script response status:", res.status);
+        } catch (fetchErr) {
+          console.error("Failed to send email via Google Apps Script:", fetchErr);
+          // We don't throw here because the primary action (saving to Supabase) succeeded
+        }
+      }
+
       setSubmitState("success");
     } catch (err) {
       console.error("Failed to submit results:", err);
