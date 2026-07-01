@@ -637,5 +637,38 @@ export const quizData: QuestionData[] = [
     correctAnswer: "she's not",
     explanation: "'She's not' é a resposta curta negativa correta para 'she'.",
     example: "Is she watching TV? No, she's not."
+  },
+  {
+    id: "q58",
+    type: "multiple-choice",
+    topic: "Present Continuous Questions",
+    instruction: "Choose the correct short answer.",
+    sentence: "A: Are you studying English now?\nB: Yes, ___.",
+    options: ["I am", "I'm", "I do", "am I"],
+    correctAnswer: "I am",
+    explanation: "Respostas curtas afirmativas com 'I' não usam a contração 'I'm'.",
+    example: "Are you working? Yes, I am."
+  },
+  {
+    id: "q59",
+    type: "multiple-choice",
+    topic: "Present Continuous",
+    instruction: "Complete the sentence.",
+    sentence: "Look! The dog ___ in the park.",
+    options: ["is running", "are running", "running", "runs"],
+    correctAnswer: "is running",
+    explanation: "Use 'is' para um sujeito no singular (the dog), seguido do verbo com -ing.",
+    example: "The cat is sleeping on the sofa."
+  },
+  {
+    id: "q60",
+    type: "multiple-choice",
+    topic: "Present Continuous Questions",
+    instruction: "Complete the question.",
+    sentence: "A: What ___ she doing right now?\nB: She's reading a book.",
+    options: ["is", "are", "do", "does"],
+    correctAnswer: "is",
+    explanation: "Use 'is' em perguntas com 'What' quando o sujeito for 'she'.",
+    example: "What is he doing?"
   }
 ];
