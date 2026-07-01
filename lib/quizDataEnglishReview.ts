@@ -501,7 +501,7 @@ export const quizData: QuestionData[] = [
     topic: "Possessives",
     instruction: "Choose the correct possessive adjective.",
     sentence: "A: Hey! These aren't ___ sneakers!",
-    options: ["our", "ours", "their", "theirs"],
+    options: ["our", "ours", "we", "us"],
     correctAnswer: "our",
     explanation: "Use 'our' (adjetivo) antes do substantivo 'sneakers'.",
     example: "These are our seats."
@@ -512,7 +512,7 @@ export const quizData: QuestionData[] = [
     topic: "Possessives",
     instruction: "Choose the correct possessive pronoun.",
     sentence: "B: You're right. ___ are over there.",
-    options: ["Ours", "Our", "Theirs", "Their"],
+    options: ["Ours", "Our", "We", "Us"],
     correctAnswer: "Ours",
     explanation: "'Ours' (pronome) substitui 'our sneakers' (nossos tênis).",
     example: "Ours is the blue car."
