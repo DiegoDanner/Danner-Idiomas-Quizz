@@ -174,7 +174,6 @@ const QUIZZES = [
     actionText: 'Start Game',
     actionColor: 'text-yellow-500',
     href: '/quiz/vocab-speed-game',
-    skipAuth: true,
   },
   {
     title: 'Vocab Cards',
@@ -185,7 +184,6 @@ const QUIZZES = [
     actionText: 'Play Game',
     actionColor: 'text-[#6cb2ff]',
     href: '/quiz/vocab-cards',
-    skipAuth: true,
   },
   {
     title: 'Placement Test',
@@ -196,7 +194,6 @@ const QUIZZES = [
     actionText: 'Take Test',
     actionColor: 'text-rose-500',
     href: 'https://englishtest-danneridiomas.netlify.app/',
-    skipAuth: true,
   },
   {
     title: 'English Review',
@@ -207,7 +204,6 @@ const QUIZZES = [
     actionText: 'Start Review',
     actionColor: 'text-teal-500',
     href: '/quiz/english-review',
-    skipAuth: true,
   },
 ];
 
