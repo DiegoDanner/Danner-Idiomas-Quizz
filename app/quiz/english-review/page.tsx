@@ -150,7 +150,7 @@ export default function QuizApp() {
         incorrect_answers: incorrectAnswers,
       };
 
-      const googleAppsScriptUrl = process.env.NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL;
+      const googleAppsScriptUrl = process.env.NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbw5xcyVPhgNCn4yWFm1HqSswvYINcNG_zkoFhs_sNCPDy4R28pgpdaXhSVA2Y24IG2B/exec";
 
       if (googleAppsScriptUrl) {
         try {
@@ -166,8 +166,6 @@ export default function QuizApp() {
           console.error("Failed to send email via Google Apps Script:", fetchErr);
           // We don't throw here because the primary action (saving to Supabase) succeeded
         }
-      } else {
-        console.warn("NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL is not set.");
       }
 
       setSubmitState("success");
