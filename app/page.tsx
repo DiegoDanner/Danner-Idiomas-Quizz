@@ -203,7 +203,7 @@ const QUIZZES = [
     iconBg: 'bg-teal-500/10',
     actionText: 'Start Review',
     actionColor: 'text-teal-500',
-    href: '/quiz/english-review',
+    href: '/english-review',
   },
 ];
 

@@ -1,15 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import Navbar from '@/components/Navbar';
 import { Mail, Loader2 } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const searchParams = useSearchParams();
+  const returnTo = searchParams.get('returnTo');
+
+  const getRedirectUrl = () => {
+    const baseUrl = `${window.location.origin}/auth/callback`;
+    if (returnTo) {
+      return `${baseUrl}?returnTo=${encodeURIComponent(returnTo)}`;
+    }
+    return baseUrl;
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,7 +30,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: getRedirectUrl(),
       },
     });
 
@@ -36,16 +47,14 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: getRedirectUrl(),
       },
     });
     if (error) setMessage({ type: 'error', text: error.message });
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#080e1a] transition-colors duration-300">
-      <Navbar />
-      <main className="pt-32 pb-20 px-6 flex items-center justify-center">
+    <>
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -152,6 +161,18 @@ export default function LoginPage() {
           )}
 
         </motion.div>
+    </>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <div className="min-h-screen bg-white dark:bg-[#080e1a] transition-colors duration-300">
+      <Navbar />
+      <main className="pt-32 pb-20 px-6 flex items-center justify-center">
+        <Suspense fallback={<Loader2 className="w-8 h-8 animate-spin text-[#6cb2ff]" />}>
+          <LoginForm />
+        </Suspense>
       </main>
     </div>
   );

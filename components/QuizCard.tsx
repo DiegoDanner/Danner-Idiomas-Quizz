@@ -68,7 +68,7 @@ export default function QuizCard({
         } else {
           router.push(href);
         }
-      }, skipAuth);
+      }, skipAuth, href);
     }
   };
 

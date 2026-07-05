@@ -20,11 +20,13 @@ import { supabase } from '@/lib/supabase';
 import { Loader2 } from 'lucide-react';
 import { useAuthAction } from '@/hooks/useAuthAction';
 import AuthModal from '@/components/AuthModal';
+import { useRouter } from 'next/navigation';
 
 type QuizState = "start" | "playing" | "results";
 
 export default function QuizApp() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const { performAction, showAuthModal, setShowAuthModal } = useAuthAction();
   const [quizState, setQuizState] = useState<QuizState>("start");
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -39,6 +41,12 @@ export default function QuizApp() {
   const [userAnswersHistory, setUserAnswersHistory] = useState<any[]>([]);
   const [submitState, setSubmitState] = useState<"idle" | "loading" | "success" | "error">("idle");
 
+  // Authentication redirect logic
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace('/login?returnTo=/english-review');
+    }
+  }, [authLoading, user, router]);
 
   // Timer logic
   useEffect(() => {
@@ -226,6 +234,14 @@ export default function QuizApp() {
     }
     return optionsCopy;
   }, [q]);
+
+  if (authLoading || (!user && process.env.NODE_ENV !== 'development')) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <Loader2 className="w-12 h-12 animate-spin text-blue-500" />
+      </div>
+    );
+  }
 
   if (quizState === "start") {
     return (
