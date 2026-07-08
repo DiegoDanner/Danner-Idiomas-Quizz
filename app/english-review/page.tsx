@@ -40,6 +40,7 @@ export default function QuizApp() {
   const [startTime, setStartTime] = useState<number>(0);
   const [userAnswersHistory, setUserAnswersHistory] = useState<any[]>([]);
   const [submitState, setSubmitState] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
   // Authentication redirect logic
   useEffect(() => {
@@ -79,6 +80,7 @@ export default function QuizApp() {
     setStartTime(0);
     setUserAnswersHistory([]);
     setSubmitState("idle");
+    setErrorMessage("");
   };
 
   const speak = (text: string) => {
@@ -123,6 +125,8 @@ export default function QuizApp() {
 
   const submitDetailedResults = async () => {
     setSubmitState("loading");
+    setErrorMessage("");
+    console.log("Starting submitDetailedResults...");
 
     // Calculate final elapsed time
     let elapsedSeconds = 0;
@@ -130,12 +134,55 @@ export default function QuizApp() {
       elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
     }
 
-    const accuracy = Math.round((score / quizData.length) * 100);
-    const studentName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Student';
-
     try {
+      console.log("Checking authentication session...");
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+
+      if (authError || !authUser) {
+        console.error("Authentication error or no user found:", authError);
+        setErrorMessage("You must be logged in to save results.");
+        setSubmitState("error");
+        return;
+      }
+
+      console.log("Authenticated user found:", authUser.id);
+
+      console.log("Checking for user profile...");
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', authUser.id)
+        .single();
+
+      if (profileError && profileError.code === 'PGRST116') {
+        console.log("Profile not found. Creating a new profile for user:", authUser.id);
+        const { error: insertProfileError } = await supabase
+          .from('profiles')
+          .insert([{ id: authUser.id }]);
+
+        if (insertProfileError) {
+          console.error("Error creating profile:", insertProfileError);
+          setErrorMessage("Failed to create user profile.");
+          setSubmitState("error");
+          return;
+        }
+        console.log("Profile created successfully.");
+      } else if (profileError) {
+        console.error("Error checking profile:", profileError);
+        setErrorMessage("Error verifying user profile.");
+        setSubmitState("error");
+        return;
+      } else {
+        console.log("User profile exists.");
+      }
+
+      const accuracy = Math.round((score / quizData.length) * 100);
+      const studentName = authUser?.user_metadata?.full_name || authUser?.email?.split('@')[0] || 'Student';
+
+      console.log("Inserting quiz results into Supabase quiz_submissions...");
       const { error } = await supabase.from('quiz_submissions').insert([
         {
+          user_id: authUser.id,
           student_name: studentName,
           class_name: 'English Review',
           score: score,
@@ -146,8 +193,10 @@ export default function QuizApp() {
       ]);
 
       if (error) {
+        console.error("Supabase insert error:", error);
         throw error;
       }
+      console.log("Successfully saved results to Supabase.");
 
       // After successful Supabase insert, send email via Google Apps Script Web App
       const incorrectAnswers = userAnswersHistory.filter(ans => !ans.isCorrect);
@@ -156,6 +205,7 @@ export default function QuizApp() {
         type: "INSERT",
         table: "quiz_submissions",
         record: {
+          user_id: authUser.id,
           student_name: studentName,
           class_name: 'English Review',
           score: score,
@@ -188,6 +238,7 @@ export default function QuizApp() {
       setSubmitState("success");
     } catch (err) {
       console.error("Failed to submit results:", err);
+      setErrorMessage("Failed to save your results. Please try again.");
       setSubmitState("error");
     }
   };
@@ -331,13 +382,18 @@ export default function QuizApp() {
             )}
 
             {submitState === "error" && (
-              <button
-                onClick={submitDetailedResults}
-                className="flex-1 flex justify-center items-center gap-2 bg-rose-50 text-rose-600 border-2 border-rose-200 px-6 py-4 rounded-2xl text-lg font-bold hover:bg-rose-100 transition-all active:scale-95"
-              >
-                <RotateCcw className="w-6 h-6" />
-                Failed to submit. Click to retry.
-              </button>
+              <div className="flex-1 flex flex-col justify-center items-center gap-2">
+                <button
+                  onClick={submitDetailedResults}
+                  className="w-full flex justify-center items-center gap-2 bg-rose-50 text-rose-600 border-2 border-rose-200 px-6 py-4 rounded-2xl text-lg font-bold hover:bg-rose-100 transition-all active:scale-95"
+                >
+                  <RotateCcw className="w-6 h-6" />
+                  Retry Submit
+                </button>
+                {errorMessage && (
+                  <p className="text-rose-500 text-sm font-semibold">{errorMessage}</p>
+                )}
+              </div>
             )}
 
             <Link
