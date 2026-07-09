@@ -177,11 +177,13 @@ export default function QuizApp() {
       }
 
       const accuracy = Math.round((score / quizData.length) * 100);
+      const studentName = authUser?.user_metadata?.full_name || authUser?.email?.split('@')[0] || 'Student';
 
       console.log("Inserting quiz results into Supabase quiz_submissions...");
       const { error } = await supabase.from('quiz_submissions').insert([
         {
-          student_name: authUser.id,
+          user_id: authUser.id,
+          student_name: studentName,
           class_name: 'English Review',
           score: score,
           percentage: accuracy,
@@ -203,7 +205,8 @@ export default function QuizApp() {
         type: "INSERT",
         table: "quiz_submissions",
         record: {
-          student_name: authUser.id,
+          user_id: authUser.id,
+          student_name: studentName,
           class_name: 'English Review',
           score: score,
           percentage: accuracy,
