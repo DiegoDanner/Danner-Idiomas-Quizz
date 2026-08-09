@@ -69,13 +69,13 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
 
     setIsConnecting(true);
     setError(null);
-    addLog("Connecting to gemini-2.0-flash-exp...");
+    addLog("Connecting to gemini-3.1-flash-live-preview...");
 
     try {
       const ai = new GoogleGenAI({ apiKey });
       
       const session = await ai.live.connect({
-        model: "gemini-2.0-flash-exp",
+        model: "gemini-3.1-flash-live-preview",
         config: {
           systemInstruction: {
             parts: [{ text: "You are Teacher Danner, a friendly English teacher from Brazil helping students learn English. You have a deep, slightly hoarse and gravelly male voice. Explain things simply. Use English mostly, but Portuguese if needed. Be encouraging and focus on meaningful communication. Do not correct trivial errors like capitalization or punctuation unless it significantly changes the meaning." }]
@@ -105,7 +105,11 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
           },
           onerror: (err: any) => {
             addLog(`Error: ${err.message || "WebSocket Error"}`);
-            setError(`Connection lost: ${err.message || 'Check internet connection'}`);
+            let displayError = err.message || 'Check internet connection';
+            if (displayError.includes('not found') || displayError.includes('deprecated')) {
+              displayError = 'Model unavailable. Please update the app.';
+            }
+            setError(`Connection lost: ${displayError}`);
             stopSession();
           },
           onclose: (event: any) => {
