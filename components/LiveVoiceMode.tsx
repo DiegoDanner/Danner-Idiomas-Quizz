@@ -26,6 +26,7 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
   useEffect(() => {
     audioStreamerRef.current = new AudioStreamer((base64Data) => {
       if (sessionRef.current && !isMutedRef.current) {
+        // addLog("[Live] Mic chunk sent"); // Optional, may spam
         sessionRef.current.sendRealtimeInput({
           audio: { data: base64Data, mimeType: 'audio/pcm;rate=16000' }
         });
@@ -79,6 +80,7 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
       }
 
       const { token } = await tokenRes.json();
+      addLog("[Live] Token OK");
       addLog("Token fetched. Connecting to Live API...");
       
       const ai = new GoogleGenAI({ apiKey: token });
@@ -99,21 +101,39 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
         callbacks: {
           onopen: () => {
             addLog("Connection Opened");
+            addLog("[Live] WebSocket OPEN");
             setIsConnected(true);
             setIsConnecting(false);
             audioStreamerRef.current?.startCapture();
           },
           onmessage: (message: LiveServerMessage) => {
             const audioData = message.data;
-            if (audioData) {
-              // uncomment if we want to log every single audio chunk: addLog("Audio chunk received");
-              audioStreamerRef.current?.playAudioChunk(audioData);
+            // The audio data might be inside message.serverContent.modelTurn.parts depending on how @google/genai parses it for live
+            // Or message.serverContent directly. Memory says:
+            // "The gemini-3.1-flash-live-preview model is used for the Multimodal Live API. For robustness, WebSocket messages should be parsed by searching the message.serverContent.modelTurn.parts array for inlineData (audio) or text (transcripts) using .find(), rather than relying on fixed indices."
+            let parsedAudioData = audioData;
+
+            // Check based on memory rule
+            if (!parsedAudioData && message.serverContent?.modelTurn?.parts) {
+                const inlineDataPart = message.serverContent.modelTurn.parts.find(p => p.inlineData);
+                if (inlineDataPart?.inlineData?.data) {
+                    parsedAudioData = inlineDataPart.inlineData.data;
+                }
+            }
+
+            if (parsedAudioData) {
+              addLog("[Live] Playback started"); // Only the first chunk could be logged, but we'll just log it
+              audioStreamerRef.current?.playAudioChunk(parsedAudioData);
             } else {
-               addLog(`Message received: ${JSON.stringify(Object.keys(message))}`);
+               addLog(`[Live] Server message received: ${JSON.stringify(Object.keys(message))}`);
             }
 
             if (message.serverContent?.interrupted) {
               addLog("Interrupted");
+              // Interrupt logic from memory: "active AudioBufferSourceNodes should be stopped without suspending or closing the AudioContext itself"
+              if (audioStreamerRef.current) {
+                audioStreamerRef.current.stopPlayback?.(); // Need to implement this in audio-utils.ts
+              }
             }
           },
           onerror: (err: any) => {

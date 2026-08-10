@@ -17,6 +17,7 @@ export class AudioStreamer {
   private onSpeechEnd: (() => void) | null = null;
   private speechEndTimeout: any = null;
   private onAudioData: (data: string) => void;
+  private activeSources: Set<AudioBufferSourceNode> = new Set();
 
   constructor(callback: (data: string) => void) {
     this.onAudioData = (d: string) => callback(d);
@@ -26,6 +27,18 @@ export class AudioStreamer {
     this.onSpeechEnd = callback;
   }
 
+  stopPlayback() {
+    this.activeSources.forEach(source => {
+      try {
+        source.stop();
+      } catch (e) {
+        // ignore
+      }
+    });
+    this.activeSources.clear();
+    this.nextStartTime = 0;
+  }
+
   /**
    * Initializes the AudioContext. Must be called from a user gesture.
    */
@@ -33,7 +46,9 @@ export class AudioStreamer {
     if (!this.audioContext) {
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
         latencyHint: 'interactive',
+        sampleRate: 16000,
       });
+      console.log(`[Live] AudioContext sampleRate: ${this.audioContext.sampleRate}`);
 
       // Mobile audio routing trick
       this.destination = this.audioContext.createMediaStreamDestination();
@@ -55,7 +70,6 @@ export class AudioStreamer {
 
       if (this.destination) {
         this.gainNode.connect(this.destination);
-        this.gainNode.connect(this.audioContext.destination);
       } else {
         this.gainNode.connect(this.audioContext.destination);
       }
@@ -164,6 +178,11 @@ export class AudioStreamer {
     if (this.nextStartTime < currentTime) {
       this.nextStartTime = currentTime;
     }
+
+    this.activeSources.add(source);
+    source.onended = () => {
+      this.activeSources.delete(source);
+    };
 
     source.start(this.nextStartTime);
     this.nextStartTime += audioBuffer.duration;
