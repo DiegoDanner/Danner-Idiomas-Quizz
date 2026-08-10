@@ -72,12 +72,10 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
     addLog("Connecting to gemini-2.0-flash-exp...");
 
     try {
-      addLog("Initializing GoogleGenAI...");
       const ai = new GoogleGenAI({ apiKey });
       
-      addLog("Calling ai.live.connect()...");
       const session = await ai.live.connect({
-        model: "gemini-3.1-flash-live-preview",
+        model: "gemini-2.0-flash-exp",
         config: {
           systemInstruction: {
             parts: [{ text: "You are Teacher Danner, a friendly English teacher from Brazil helping students learn English. You have a deep, slightly hoarse and gravelly male voice. Explain things simply. Use English mostly, but Portuguese if needed. Be encouraging and focus on meaningful communication. Do not correct trivial errors like capitalization or punctuation unless it significantly changes the meaning." }]
@@ -99,28 +97,19 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
             const audioData = message.data;
             if (audioData) {
               audioStreamerRef.current?.playAudioChunk(audioData);
-            } else if (message.serverContent?.modelTurn) {
-              addLog(`Server modelTurn received.`);
-            } else if (message.serverContent?.turnComplete) {
-              addLog(`Server turnComplete received.`);
-            } else {
-               addLog(`Message received: ${JSON.stringify(Object.keys(message))}`);
             }
 
             if (message.serverContent?.interrupted) {
-              addLog("Interrupted signal from server");
-              audioStreamerRef.current?.stopPlayback();
+              addLog("Interrupted");
             }
           },
           onerror: (err: any) => {
-            addLog(`WebSocket Error: ${err.message || "Unknown"}`);
-            console.error("LiveVoiceMode onerror payload:", err);
+            addLog(`Error: ${err.message || "WebSocket Error"}`);
             setError(`Connection lost: ${err.message || 'Check internet connection'}`);
             stopSession();
           },
           onclose: (event: any) => {
-            addLog(`WebSocket Closed: code=${event.code} reason=${event.reason}`);
-            console.log("LiveVoiceMode onclose event:", event);
+            addLog(`Closed: ${event.code || "Unknown"}`);
             setIsConnected(false);
             setIsConnecting(false);
             stopSession();
@@ -128,11 +117,9 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
         }
       });
 
-      addLog("Live session connected successfully.");
       sessionRef.current = session;
     } catch (err: any) {
-      addLog(`Connection Failed: ${err.message}`);
-      console.error("LiveVoiceMode connection catch block:", err);
+      addLog(`Failed: ${err.message}`);
       setError(`Failed to connect: ${err.message}`);
       setIsConnecting(false);
     }

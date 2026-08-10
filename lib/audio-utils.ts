@@ -16,7 +16,6 @@ export class AudioStreamer {
   private isPlaying: boolean = false;
   private onSpeechEnd: (() => void) | null = null;
   private speechEndTimeout: any = null;
-  private activeSources: AudioBufferSourceNode[] = [];
   private onAudioData: (data: string) => void;
 
   constructor(callback: (data: string) => void) {
@@ -34,10 +33,7 @@ export class AudioStreamer {
     if (!this.audioContext) {
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
         latencyHint: 'interactive',
-        sampleRate: 16000,
       });
-
-      console.log(`[AudioStreamer] Initialized AudioContext with sampleRate: ${this.audioContext.sampleRate}`);
 
       // Mobile audio routing trick
       this.destination = this.audioContext.createMediaStreamDestination();
@@ -96,16 +92,10 @@ export class AudioStreamer {
       this.source = this.audioContext.createMediaStreamSource(this.stream);
       this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
 
-      let chunkCount = 0;
       this.processor.onaudioprocess = (e) => {
         const inputData = e.inputBuffer.getChannelData(0);
         const pcmData = this.float32ToPcm(inputData);
         const base64Data = this.arrayBufferToBase64(pcmData);
-
-        chunkCount++;
-        if (chunkCount % 20 === 0) {
-           console.log(`[AudioStreamer] Sent 20 chunks. Latest chunk: size=${pcmData.byteLength} bytes, context_rate=${this.audioContext?.sampleRate}`);
-        }
         this.onAudioData(base64Data);
       };
 
@@ -147,18 +137,6 @@ export class AudioStreamer {
     }
   }
 
-  stopPlayback() {
-    this.isPlaying = false;
-    this.nextStartTime = this.audioContext?.currentTime || 0;
-    if (this.speechEndTimeout) {
-      clearTimeout(this.speechEndTimeout);
-    }
-    this.activeSources.forEach(source => {
-      try { source.stop(); } catch (e) {}
-    });
-    this.activeSources = [];
-  }
-
   async playAudioChunk(base64Data: string) {
     await this.init();
     if (!this.audioContext) return;
@@ -188,12 +166,6 @@ export class AudioStreamer {
     }
 
     source.start(this.nextStartTime);
-    this.activeSources.push(source);
-
-    source.onended = () => {
-      this.activeSources = this.activeSources.filter(s => s !== source);
-    };
-
     this.nextStartTime += audioBuffer.duration;
     this.isPlaying = true;
 
