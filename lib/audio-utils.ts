@@ -32,8 +32,10 @@ export class AudioStreamer {
   async init() {
     if (!this.audioContext) {
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
+        sampleRate: 16000,
         latencyHint: 'interactive',
       });
+      console.log("[Live] Actual AudioContext sampleRate:", this.audioContext.sampleRate);
 
       // Mobile audio routing trick
       this.destination = this.audioContext.createMediaStreamDestination();
@@ -55,8 +57,7 @@ export class AudioStreamer {
 
       if (this.destination) {
         this.gainNode.connect(this.destination);
-        // Removed duplicate connection to this.audioContext.destination
-        // to prevent overlapping audio streams.
+        this.gainNode.connect(this.audioContext.destination);
       } else {
         this.gainNode.connect(this.audioContext.destination);
       }
