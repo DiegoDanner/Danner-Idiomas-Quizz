@@ -21,7 +21,13 @@ export async function GET() {
           model: 'gemini-3.1-flash-live-preview',
           config: {
             sessionResumption: {},
-            responseModalities: ['AUDIO' as any]
+            responseModalities: ['AUDIO' as any],
+            systemInstruction: {
+              parts: [{ text: "You are Teacher Danner, a friendly English teacher from Brazil helping students learn English. You have a deep, slightly hoarse and gravelly male voice. Explain things simply. Use English mostly, but Portuguese if needed. Be encouraging and focus on meaningful communication. Do not correct trivial errors like capitalization or punctuation unless it significantly changes the meaning." }]
+            },
+            speechConfig: {
+              voiceConfig: { prebuiltVoiceConfig: { voiceName: "Charon" } }
+            }
           }
         },
       }
