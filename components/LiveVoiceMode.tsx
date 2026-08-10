@@ -61,21 +61,24 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
   }, []);
 
   const startSession = useCallback(async () => {
-    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-    if (!apiKey) {
-      setError("Gemini API Key missing.");
-      return;
-    }
-
     setIsConnecting(true);
     setError(null);
-    addLog("Connecting to gemini-2.0-flash-exp...");
+    addLog("Fetching ephemeral token...");
 
     try {
-      const ai = new GoogleGenAI({ apiKey });
+      const tokenRes = await fetch('/api/live-token');
+      if (!tokenRes.ok) {
+        const errData = await tokenRes.json();
+        throw new Error(errData.error || "Failed to fetch token");
+      }
+
+      const { token } = await tokenRes.json();
+      addLog("Token fetched. Connecting to Live API...");
+
+      const ai = new GoogleGenAI({ apiKey: token });
       
       const session = await ai.live.connect({
-        model: "gemini-2.0-flash-exp",
+        model: "gemini-3.1-flash-live-preview",
         config: {
           systemInstruction: {
             parts: [{ text: "You are Teacher Danner, a friendly English teacher from Brazil helping students learn English. You have a deep, slightly hoarse and gravelly male voice. Explain things simply. Use English mostly, but Portuguese if needed. Be encouraging and focus on meaningful communication. Do not correct trivial errors like capitalization or punctuation unless it significantly changes the meaning." }]

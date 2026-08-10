@@ -5,8 +5,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { MessageCircle, X, Send, User, Loader2, Sparkles, Mic } from 'lucide-react';
 import Image from 'next/image';
 import LiveVoiceMode from './LiveVoiceMode';
-import { GoogleGenAI } from "@google/genai";
-
 interface Message {
   role: 'user' | 'model';
   content: string;
@@ -44,38 +42,27 @@ export default function ChatWidget() {
     setIsLoading(true);
 
     try {
-      // Check if API key is selected (required for some models/regions)
-      if (typeof window !== 'undefined' && (window as any).aistudio) {
-        const hasKey = await (window as any).aistudio.hasSelectedApiKey();
-        if (!hasKey) {
-          await (window as any).aistudio.openSelectKey();
-          // After opening, we assume success as per guidelines
-        }
-      }
-
-      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY?.trim();
-      
-      if (!apiKey) {
-        throw new Error("API Key not configured. Please check your environment variables.");
-      }
-
-      const ai = new GoogleGenAI({ apiKey });
-      const chat = ai.chats.create({
-        model: "gemini-3.6-flash",
-        config: {
-          systemInstruction: {
-            parts: [{ text: "You are Teacher Danner, a friendly and experienced English teacher from Brazil helping students learn English. You explain things simply, give examples, and encourage students. You never say you are an AI. You respond in English or Portuguese depending on the student. If the student writes in English, focus on the conversation. Only correct mistakes if they affect understanding or are significant. Avoid correcting minor issues like capitalization or punctuation. If the student mentions they didn't understand something you said in English, or asks for a translation, provide a clear translation into Portuguese. Keep answers short, practical, and easy to understand. Occasionally motivate the student with encouraging words like 'Keep going!', 'You're doing great!', or 'Vamos lá!'." }]
-          },
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        history: messages.map((m) => ({
-          role: m.role === 'user' ? 'user' : 'model',
-          parts: [{ text: m.content }]
-        }))
+        body: JSON.stringify({
+          message: userMessage,
+          history: messages.map((m) => ({
+            role: m.role === 'user' ? 'user' : 'model',
+            parts: [{ text: m.content }]
+          }))
+        })
       });
 
-      const result = await chat.sendMessage({ message: userMessage });
-      const aiResponse = result.text || "Desculpe, tive um probleminha. Pode repetir?";
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to get response");
+      }
       
+      const aiResponse = data.text || "Desculpe, tive um probleminha. Pode repetir?";
       setMessages(prev => [...prev, { role: 'model', content: aiResponse }]);
     } catch (error: any) {
       console.error("Chat error details:", error);

@@ -55,7 +55,8 @@ export class AudioStreamer {
 
       if (this.destination) {
         this.gainNode.connect(this.destination);
-        this.gainNode.connect(this.audioContext.destination);
+        // Removed duplicate connection to this.audioContext.destination
+        // to prevent overlapping audio streams.
       } else {
         this.gainNode.connect(this.audioContext.destination);
       }
