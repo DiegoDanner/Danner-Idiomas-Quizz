@@ -69,11 +69,21 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
 
     setIsConnecting(true);
     setError(null);
-    addLog("Connecting to gemini-3.1-flash-live-preview...");
+    addLog("Fetching ephemeral token...");
 
     try {
-      const ai = new GoogleGenAI({ apiKey });
+      const tokenRes = await fetch('/api/live-token');
+      if (!tokenRes.ok) {
+        const errData = await tokenRes.json();
+        throw new Error(errData.error || "Failed to fetch token");
+      }
+
+      const { token } = await tokenRes.json();
+      addLog("Token fetched. Connecting to Live API...");
       
+      const ai = new GoogleGenAI({ apiKey: token });
+
+      addLog("Calling ai.live.connect()...");
       const session = await ai.live.connect({
         model: "gemini-3.1-flash-live-preview",
         config: {
@@ -96,7 +106,10 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
           onmessage: (message: LiveServerMessage) => {
             const audioData = message.data;
             if (audioData) {
+              // uncomment if we want to log every single audio chunk: addLog("Audio chunk received");
               audioStreamerRef.current?.playAudioChunk(audioData);
+            } else {
+               addLog(`Message received: ${JSON.stringify(Object.keys(message))}`);
             }
 
             if (message.serverContent?.interrupted) {
@@ -104,7 +117,8 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
             }
           },
           onerror: (err: any) => {
-            addLog(`Error: ${err.message || "WebSocket Error"}`);
+            addLog(`WebSocket Error: ${err.message || "Unknown"}`);
+            console.error("LiveVoiceMode onerror payload:", err);
             let displayError = err.message || 'Check internet connection';
             if (displayError.includes('not found') || displayError.includes('deprecated')) {
               displayError = 'Model unavailable. Please update the app.';
@@ -113,7 +127,8 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
             stopSession();
           },
           onclose: (event: any) => {
-            addLog(`Closed: ${event.code || "Unknown"}`);
+            addLog(`WebSocket Closed: code=${event.code} reason=${event.reason}`);
+            console.log("LiveVoiceMode onclose event:", event);
             setIsConnected(false);
             setIsConnecting(false);
             stopSession();
@@ -121,9 +136,11 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
         }
       });
 
+      addLog("Live session connected successfully.");
       sessionRef.current = session;
     } catch (err: any) {
-      addLog(`Failed: ${err.message}`);
+      addLog(`Connection Failed: ${err.message}`);
+      console.error("LiveVoiceMode connection catch block:", err);
       setError(`Failed to connect: ${err.message}`);
       setIsConnecting(false);
     }
