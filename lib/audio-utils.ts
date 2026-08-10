@@ -4,14 +4,19 @@
  */
 
 export class AudioStreamer {
-  private audioContext: AudioContext | null = null;
+  private captureContext: AudioContext | null = null;
+  private playbackContext: AudioContext | null = null;
+
   private destination: MediaStreamAudioDestinationNode | null = null;
   private audioElement: HTMLAudioElement | null = null;
+
   private processor: ScriptProcessorNode | null = null;
   private stream: MediaStream | null = null;
   private source: MediaStreamAudioSourceNode | null = null;
+
   private gainNode: GainNode | null = null;
   private volume: number = 1.0;
+
   private nextStartTime: number = 0;
   private isPlaying: boolean = false;
   private onSpeechEnd: (() => void) | null = null;
@@ -40,18 +45,26 @@ export class AudioStreamer {
   }
 
   /**
-   * Initializes the AudioContext. Must be called from a user gesture.
+   * Initializes the AudioContexts. Must be called from a user gesture.
    */
   async init() {
-    if (!this.audioContext) {
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
+    if (!this.captureContext) {
+      this.captureContext = new (window.AudioContext || (window as any).webkitAudioContext)({
         latencyHint: 'interactive',
         sampleRate: 16000,
       });
-      console.log(`[Live] AudioContext sampleRate: ${this.audioContext.sampleRate}`);
+      console.log(`[Live] Capture AudioContext sampleRate: ${this.captureContext.sampleRate}`);
+    }
+
+    if (!this.playbackContext) {
+      this.playbackContext = new (window.AudioContext || (window as any).webkitAudioContext)({
+        latencyHint: 'interactive',
+        sampleRate: 24000,
+      });
+      console.log(`[Live] Playback AudioContext sampleRate: ${this.playbackContext.sampleRate}`);
 
       // Mobile audio routing trick
-      this.destination = this.audioContext.createMediaStreamDestination();
+      this.destination = this.playbackContext.createMediaStreamDestination();
       this.audioElement = new Audio();
       this.audioElement.id = 'gemini-live-audio-output';
       this.audioElement.style.display = 'none';
@@ -64,28 +77,29 @@ export class AudioStreamer {
       this.audioElement.play().catch(() => {});
     }
 
-    if (!this.gainNode && this.audioContext) {
-      this.gainNode = this.audioContext.createGain();
+    if (!this.gainNode && this.playbackContext) {
+      this.gainNode = this.playbackContext.createGain();
       this.gainNode.gain.value = this.volume;
 
       if (this.destination) {
         this.gainNode.connect(this.destination);
       } else {
-        this.gainNode.connect(this.audioContext.destination);
+        this.gainNode.connect(this.playbackContext.destination);
       }
     }
 
-    if (this.audioContext.state === 'suspended') {
-      await this.audioContext.resume();
+    if (this.captureContext.state === 'suspended') {
+      await this.captureContext.resume();
     }
-
-    return this.audioContext;
+    if (this.playbackContext.state === 'suspended') {
+      await this.playbackContext.resume();
+    }
   }
 
   setVolume(volume: number) {
     this.volume = volume;
-    if (this.gainNode && this.audioContext) {
-      this.gainNode.gain.setTargetAtTime(volume, this.audioContext.currentTime, 0.1);
+    if (this.gainNode && this.playbackContext) {
+      this.gainNode.gain.setTargetAtTime(volume, this.playbackContext.currentTime, 0.1);
     }
   }
 
@@ -93,7 +107,7 @@ export class AudioStreamer {
     try {
       await this.init();
       
-      if (!this.audioContext) return;
+      if (!this.captureContext) return;
 
       this.stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -102,9 +116,9 @@ export class AudioStreamer {
         }
       });
       
-      if (!this.audioContext || !this.stream) return;
-      this.source = this.audioContext.createMediaStreamSource(this.stream);
-      this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
+      if (!this.captureContext || !this.stream) return;
+      this.source = this.captureContext.createMediaStreamSource(this.stream);
+      this.processor = this.captureContext.createScriptProcessor(4096, 1, 1);
 
       this.processor.onaudioprocess = (e) => {
         const inputData = e.inputBuffer.getChannelData(0);
@@ -114,7 +128,7 @@ export class AudioStreamer {
       };
 
       this.source.connect(this.processor);
-      this.processor.connect(this.audioContext.destination);
+      this.processor.connect(this.captureContext.destination);
     } catch (error) {
       console.error('Error starting audio capture:', error);
       throw error;
@@ -140,12 +154,16 @@ export class AudioStreamer {
       this.audioElement.remove();
       this.audioElement = null;
     }
-    if (this.audioContext && this.audioContext.state !== 'closed') {
-      this.audioContext.close();
-      this.audioContext = null;
-      this.gainNode = null;
-      this.destination = null;
+    if (this.captureContext && this.captureContext.state !== 'closed') {
+      this.captureContext.close();
+      this.captureContext = null;
     }
+    if (this.playbackContext && this.playbackContext.state !== 'closed') {
+      this.playbackContext.close();
+      this.playbackContext = null;
+    }
+    this.gainNode = null;
+    this.destination = null;
     if (this.speechEndTimeout) {
       clearTimeout(this.speechEndTimeout);
     }
@@ -153,7 +171,7 @@ export class AudioStreamer {
 
   async playAudioChunk(base64Data: string) {
     await this.init();
-    if (!this.audioContext) return;
+    if (!this.playbackContext) return;
 
     if (this.audioElement && this.audioElement.paused) {
       this.audioElement.play().catch(() => {});
@@ -162,19 +180,19 @@ export class AudioStreamer {
     const pcmData = this.base64ToArrayBuffer(base64Data);
     const floatData = this.pcmToFloat32(pcmData);
     
-    const audioBuffer = this.audioContext.createBuffer(1, floatData.length, 24000);
+    const audioBuffer = this.playbackContext.createBuffer(1, floatData.length, 24000);
     audioBuffer.getChannelData(0).set(floatData);
 
-    const source = this.audioContext.createBufferSource();
+    const source = this.playbackContext.createBufferSource();
     source.buffer = audioBuffer;
 
     if (this.gainNode) {
       source.connect(this.gainNode);
     } else {
-      source.connect(this.audioContext.destination);
+      source.connect(this.playbackContext.destination);
     }
 
-    const currentTime = this.audioContext.currentTime;
+    const currentTime = this.playbackContext.currentTime;
     if (this.nextStartTime < currentTime) {
       this.nextStartTime = currentTime;
     }

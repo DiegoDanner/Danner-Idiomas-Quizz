@@ -26,7 +26,7 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
   useEffect(() => {
     audioStreamerRef.current = new AudioStreamer((base64Data) => {
       if (sessionRef.current && !isMutedRef.current) {
-        // addLog("[Live] Mic chunk sent"); // Optional, may spam
+
         sessionRef.current.sendRealtimeInput({
           audio: { data: base64Data, mimeType: 'audio/pcm;rate=16000' }
         });
@@ -95,7 +95,7 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
           temperature: 0.7,
           responseModalities: ["AUDIO"],
           speechConfig: {
-            voiceConfig: { prebuiltVoiceConfig: { voiceName: "Algenib" } },
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: "Charon" } },
           },
         } as any,
         callbacks: {
@@ -105,6 +105,8 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
             setIsConnected(true);
             setIsConnecting(false);
             audioStreamerRef.current?.startCapture();
+
+
           },
           onmessage: (message: LiveServerMessage) => {
             const audioData = message.data;
@@ -122,7 +124,7 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
             }
 
             if (parsedAudioData) {
-              addLog("[Live] Playback started"); // Only the first chunk could be logged, but we'll just log it
+              addLog("[Live] Playback started");
               audioStreamerRef.current?.playAudioChunk(parsedAudioData);
             } else {
                addLog(`[Live] Server message received: ${JSON.stringify(Object.keys(message))}`);
@@ -130,9 +132,9 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
 
             if (message.serverContent?.interrupted) {
               addLog("Interrupted");
-              // Interrupt logic from memory: "active AudioBufferSourceNodes should be stopped without suspending or closing the AudioContext itself"
+
               if (audioStreamerRef.current) {
-                audioStreamerRef.current.stopPlayback?.(); // Need to implement this in audio-utils.ts
+                audioStreamerRef.current.stopPlayback?.();
               }
             }
           },
