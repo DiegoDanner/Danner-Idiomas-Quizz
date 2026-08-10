@@ -61,7 +61,7 @@ export default function ChatWidget() {
 
       const ai = new GoogleGenAI({ apiKey });
       const chat = ai.chats.create({
-        model: "gemini-3.6-flash",
+        model: "gemini-2.0-flash-exp",
         config: {
           systemInstruction: {
             parts: [{ text: "You are Teacher Danner, a friendly and experienced English teacher from Brazil helping students learn English. You explain things simply, give examples, and encourage students. You never say you are an AI. You respond in English or Portuguese depending on the student. If the student writes in English, focus on the conversation. Only correct mistakes if they affect understanding or are significant. Avoid correcting minor issues like capitalization or punctuation. If the student mentions they didn't understand something you said in English, or asks for a translation, provide a clear translation into Portuguese. Keep answers short, practical, and easy to understand. Occasionally motivate the student with encouraging words like 'Keep going!', 'You're doing great!', or 'Vamos lá!'." }]
@@ -86,8 +86,6 @@ export default function ChatWidget() {
         errorMessage += " A chave da API não está configurada corretamente.";
       } else if (error?.message?.includes("quota") || error?.message?.includes("429")) {
         errorMessage += " Limite de uso atingido. Tente novamente em alguns instantes.";
-      } else if (error?.message?.includes("not found") || error?.message?.includes("deprecated")) {
-        errorMessage += " O modelo de IA selecionado não está mais disponível. Por favor, atualize o aplicativo.";
       } else {
         errorMessage += ` Detalhes: ${error.message.substring(0, 100)}`;
       }

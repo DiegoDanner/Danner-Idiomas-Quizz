@@ -69,20 +69,12 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
 
     setIsConnecting(true);
     setError(null);
-    addLog("Fetching ephemeral token...");
+    addLog("Connecting to gemini-2.0-flash-exp...");
 
     try {
-      const tokenRes = await fetch('/api/live-token');
-      if (!tokenRes.ok) {
-        const errData = await tokenRes.json();
-        throw new Error(errData.error || "Failed to fetch token");
-      }
-
-      const { token } = await tokenRes.json();
-      addLog("Token fetched. Connecting to Live API...");
+      addLog("Initializing GoogleGenAI...");
+      const ai = new GoogleGenAI({ apiKey });
       
-      const ai = new GoogleGenAI({ apiKey: token });
-
       addLog("Calling ai.live.connect()...");
       const session = await ai.live.connect({
         model: "gemini-3.1-flash-live-preview",
@@ -106,24 +98,24 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
           onmessage: (message: LiveServerMessage) => {
             const audioData = message.data;
             if (audioData) {
-              // uncomment if we want to log every single audio chunk: addLog("Audio chunk received");
               audioStreamerRef.current?.playAudioChunk(audioData);
+            } else if (message.serverContent?.modelTurn) {
+              addLog(`Server modelTurn received.`);
+            } else if (message.serverContent?.turnComplete) {
+              addLog(`Server turnComplete received.`);
             } else {
                addLog(`Message received: ${JSON.stringify(Object.keys(message))}`);
             }
 
             if (message.serverContent?.interrupted) {
-              addLog("Interrupted");
+              addLog("Interrupted signal from server");
+              audioStreamerRef.current?.stopPlayback();
             }
           },
           onerror: (err: any) => {
             addLog(`WebSocket Error: ${err.message || "Unknown"}`);
             console.error("LiveVoiceMode onerror payload:", err);
-            let displayError = err.message || 'Check internet connection';
-            if (displayError.includes('not found') || displayError.includes('deprecated')) {
-              displayError = 'Model unavailable. Please update the app.';
-            }
-            setError(`Connection lost: ${displayError}`);
+            setError(`Connection lost: ${err.message || 'Check internet connection'}`);
             stopSession();
           },
           onclose: (event: any) => {
