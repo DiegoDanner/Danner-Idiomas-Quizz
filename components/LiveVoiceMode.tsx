@@ -24,6 +24,92 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
   const sessionRef = useRef<any>(null);
   const isMutedRef = useRef(isMuted);
 
+  const hasPlayedDisconnectRef = useRef(false);
+
+  const handleDisconnect = useCallback(() => {
+    if (!hasPlayedDisconnectRef.current) {
+      hasPlayedDisconnectRef.current = true;
+      try {
+        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const masterGain = audioCtx.createGain();
+        const filter = audioCtx.createBiquadFilter();
+
+        // Warm up sound, cut harsh highs
+        filter.type = 'lowpass';
+        filter.frequency.value = 900;
+
+        // Increase overall volume for a more confident sound
+        masterGain.gain.value = 0.7;
+
+        filter.connect(masterGain);
+        masterGain.connect(audioCtx.destination);
+
+        const playTone = (freq: number, startTime: number, duration: number, volMultiplier: number = 1.0) => {
+          const oscSine = audioCtx.createOscillator();
+          const oscTri = audioCtx.createOscillator();
+          const oscSub = audioCtx.createOscillator();
+          const gainNode = audioCtx.createGain();
+
+          oscSine.type = 'sine';
+          oscTri.type = 'triangle';
+          oscSub.type = 'sine'; // Sub-oscillator for body
+
+          oscSine.frequency.setValueAtTime(freq, audioCtx.currentTime + startTime);
+          oscTri.frequency.setValueAtTime(freq, audioCtx.currentTime + startTime);
+          oscSub.frequency.setValueAtTime(freq / 2, audioCtx.currentTime + startTime); // Octave down
+
+          // Confident attack, smooth decay
+          gainNode.gain.setValueAtTime(0, audioCtx.currentTime + startTime);
+          gainNode.gain.linearRampToValueAtTime(0.4 * volMultiplier, audioCtx.currentTime + startTime + 0.04); // Quick attack
+          gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + startTime + duration); // Natural decay
+
+          // Mix oscillators for warmer, fuller tone
+          const sineGain = audioCtx.createGain();
+          sineGain.gain.value = 0.5;
+          const triGain = audioCtx.createGain();
+          triGain.gain.value = 0.3;
+          const subGain = audioCtx.createGain();
+          subGain.gain.value = 0.2; // Add low end warmth
+
+          oscSine.connect(sineGain);
+          oscTri.connect(triGain);
+          oscSub.connect(subGain);
+
+          sineGain.connect(gainNode);
+          triGain.connect(gainNode);
+          subGain.connect(gainNode);
+
+          gainNode.connect(filter);
+
+          oscSine.start(audioCtx.currentTime + startTime);
+          oscTri.start(audioCtx.currentTime + startTime);
+          oscSub.start(audioCtx.currentTime + startTime);
+
+          oscSine.stop(audioCtx.currentTime + startTime + duration);
+          oscTri.stop(audioCtx.currentTime + startTime + duration);
+          oscSub.stop(audioCtx.currentTime + startTime + duration);
+        };
+
+        // Two-stage descending sound, slightly overlapping
+        playTone(450, 0, 0.35, 1.0);
+        playTone(310, 0.2, 0.4, 0.9);
+
+        // Close context after tones finish to prevent leak
+        setTimeout(() => {
+          audioCtx.close().catch(console.error);
+        }, 800);
+
+        onClose();
+      } catch (e) {
+        console.error("Failed to play disconnect sound:", e);
+        onClose();
+      }
+    } else {
+      onClose();
+    }
+  }, [onClose]);
+
+
   useEffect(() => {
     audioStreamerRef.current = new AudioStreamer((base64Data) => {
       if (sessionRef.current && !isMutedRef.current) {
@@ -229,7 +315,7 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
     >
       <div className="absolute top-4 right-4">
         <button 
-          onClick={onClose}
+          onClick={handleDisconnect}
           className="p-2 hover:bg-white/5 rounded-full transition-colors text-gray-400"
         >
           <PhoneOff className="w-6 h-6 text-red-500" />
@@ -331,7 +417,7 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
           </button>
           
           <button
-            onClick={onClose}
+            onClick={handleDisconnect}
             className="p-6 bg-red-600 text-white rounded-full hover:bg-red-700 transition-all shadow-xl shadow-red-600/20"
           >
             <PhoneOff className="w-8 h-8" />
