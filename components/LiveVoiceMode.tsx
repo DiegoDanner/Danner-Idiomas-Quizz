@@ -34,12 +34,12 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
         const masterGain = audioCtx.createGain();
         const filter = audioCtx.createBiquadFilter();
 
-        // Reduce harsh high frequencies
+        // Warm up sound, cut harsh highs
         filter.type = 'lowpass';
-        filter.frequency.value = 1000;
+        filter.frequency.value = 900;
 
-        // Overall volume control
-        masterGain.gain.value = 0.4;
+        // Increase overall volume for a more confident sound
+        masterGain.gain.value = 0.7;
 
         filter.connect(masterGain);
         masterGain.connect(audioCtx.destination);
@@ -47,44 +47,52 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
         const playTone = (freq: number, startTime: number, duration: number, volMultiplier: number = 1.0) => {
           const oscSine = audioCtx.createOscillator();
           const oscTri = audioCtx.createOscillator();
+          const oscSub = audioCtx.createOscillator();
           const gainNode = audioCtx.createGain();
 
           oscSine.type = 'sine';
           oscTri.type = 'triangle';
+          oscSub.type = 'sine'; // Sub-oscillator for body
 
           oscSine.frequency.setValueAtTime(freq, audioCtx.currentTime + startTime);
           oscTri.frequency.setValueAtTime(freq, audioCtx.currentTime + startTime);
+          oscSub.frequency.setValueAtTime(freq / 2, audioCtx.currentTime + startTime); // Octave down
 
-          // Smoother attack and natural decay
+          // Confident attack, smooth decay
           gainNode.gain.setValueAtTime(0, audioCtx.currentTime + startTime);
-          gainNode.gain.linearRampToValueAtTime(0.3 * volMultiplier, audioCtx.currentTime + startTime + 0.05); // Attack
-          gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + startTime + duration); // Decay
+          gainNode.gain.linearRampToValueAtTime(0.4 * volMultiplier, audioCtx.currentTime + startTime + 0.04); // Quick attack
+          gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + startTime + duration); // Natural decay
 
-          // Mix oscillators for warmer tone
+          // Mix oscillators for warmer, fuller tone
           const sineGain = audioCtx.createGain();
-          sineGain.gain.value = 0.7;
+          sineGain.gain.value = 0.5;
           const triGain = audioCtx.createGain();
           triGain.gain.value = 0.3;
+          const subGain = audioCtx.createGain();
+          subGain.gain.value = 0.2; // Add low end warmth
 
           oscSine.connect(sineGain);
           oscTri.connect(triGain);
+          oscSub.connect(subGain);
 
           sineGain.connect(gainNode);
           triGain.connect(gainNode);
+          subGain.connect(gainNode);
 
           gainNode.connect(filter);
 
           oscSine.start(audioCtx.currentTime + startTime);
           oscTri.start(audioCtx.currentTime + startTime);
+          oscSub.start(audioCtx.currentTime + startTime);
 
           oscSine.stop(audioCtx.currentTime + startTime + duration);
           oscTri.stop(audioCtx.currentTime + startTime + duration);
+          oscSub.stop(audioCtx.currentTime + startTime + duration);
         };
 
-        // Three smooth descending, slightly overlapping tones
-        playTone(540, 0, 0.25, 1.0);
-        playTone(410, 0.18, 0.25, 0.8);
-        playTone(320, 0.36, 0.35, 0.5);
+        // Two-stage descending sound, slightly overlapping
+        playTone(450, 0, 0.35, 1.0);
+        playTone(310, 0.2, 0.4, 0.9);
 
         // Close context after tones finish to prevent leak
         setTimeout(() => {
