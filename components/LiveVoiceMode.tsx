@@ -18,6 +18,7 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
   const [volume, setVolume] = useState(2.0); // Default 200%
   const [error, setError] = useState<string | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   
   const audioStreamerRef = useRef<AudioStreamer | null>(null);
   const sessionRef = useRef<any>(null);
@@ -31,6 +32,9 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
           audio: { data: base64Data, mimeType: 'audio/pcm;rate=16000' }
         });
       }
+    });
+    audioStreamerRef.current.setSpeechEndCallback(() => {
+      setIsSpeaking(false);
     });
   }, []);
 
@@ -125,6 +129,7 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
 
             if (parsedAudioData) {
               addLog("[Live] Playback started");
+              setIsSpeaking(true);
               audioStreamerRef.current?.playAudioChunk(parsedAudioData);
             } else {
                addLog(`[Live] Server message received: ${JSON.stringify(Object.keys(message))}`);
@@ -132,6 +137,7 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
 
             if (message.serverContent?.interrupted) {
               addLog("Interrupted");
+              setIsSpeaking(false);
 
               if (audioStreamerRef.current) {
                 audioStreamerRef.current.stopPlayback?.();
@@ -202,7 +208,7 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
         <div className="w-20 h-20 bg-[#6cb2ff]/20 rounded-3xl flex items-center justify-center mb-6">
           <Mic className="w-10 h-10 text-[#6cb2ff]" />
         </div>
-        <h3 className="text-2xl font-bold text-white mb-2">Voice Classroom</h3>
+        <h3 className="text-2xl font-bold text-white mb-2">Voice Conversation</h3>
         <p className="text-gray-400 mb-8">Practice English conversation with Teacher Danner.</p>
         <button
           onClick={handleStart}
@@ -257,7 +263,7 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
 
         <div className="space-y-2">
           <h3 className="text-2xl font-bold text-white">
-            {isConnecting ? "Connecting..." : isConnected ? "Teacher Danner" : "Connection Lost"}
+            Teacher Danner
           </h3>
           {!isConnected && !isConnecting && (
             <button
@@ -270,17 +276,21 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
           )}
         </div>
 
-        {/* Listening Indicator */}
+        {/* Status Indicator */}
         <div className="w-full bg-white/5 border border-white/10 rounded-3xl p-6 min-h-[80px] flex items-center justify-center text-center shadow-inner overflow-hidden">
           <AnimatePresence mode="wait">
             <motion.p
-              key="listening"
+              key={isConnecting ? "connecting" : isConnected ? (isSpeaking ? "speaking" : "listening") : "lost"}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="text-gray-500 italic animate-pulse"
+              className={`text-gray-500 italic ${isConnecting || isConnected ? 'animate-pulse' : ''}`}
             >
-              {isConnected ? "Listening for your voice..." : "..."}
+              {isConnecting
+                ? "Connecting to Teacher Danner..."
+                : isConnected
+                  ? (isSpeaking ? "Teacher Danner is speaking..." : "Teacher Danner is listening")
+                  : "Connection lost"}
             </motion.p>
           </AnimatePresence>
         </div>

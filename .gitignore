@@ -12,3 +12,4 @@ coverage/
 
 # Allow .env.example to be tracked (it should NOT contain real keys)
 !.env.example
+test-results
