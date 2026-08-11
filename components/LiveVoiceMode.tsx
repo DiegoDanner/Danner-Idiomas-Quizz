@@ -24,6 +24,53 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
   const sessionRef = useRef<any>(null);
   const isMutedRef = useRef(isMuted);
 
+  const hasPlayedDisconnectRef = useRef(false);
+
+  const handleDisconnect = useCallback(() => {
+    if (!hasPlayedDisconnectRef.current) {
+      hasPlayedDisconnectRef.current = true;
+      try {
+        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+
+        const playTone = (freq: number, startTime: number, duration: number) => {
+          const oscillator = audioCtx.createOscillator();
+          const gainNode = audioCtx.createGain();
+
+          oscillator.type = 'sine';
+          oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime + startTime);
+
+          gainNode.gain.setValueAtTime(0, audioCtx.currentTime + startTime);
+          gainNode.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + startTime + 0.05);
+          gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime + startTime + duration - 0.05);
+          gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + startTime + duration);
+
+          oscillator.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+
+          oscillator.start(audioCtx.currentTime + startTime);
+          oscillator.stop(audioCtx.currentTime + startTime + duration);
+        };
+
+        // Two short descending tones
+        playTone(440, 0, 0.15);
+        playTone(330, 0.2, 0.15);
+
+        // Close context after tones finish to prevent leak
+        setTimeout(() => {
+          audioCtx.close().catch(console.error);
+        }, 400);
+
+        onClose();
+      } catch (e) {
+        console.error("Failed to play disconnect sound:", e);
+        onClose();
+      }
+    } else {
+      onClose();
+    }
+  }, [onClose]);
+
+
   useEffect(() => {
     audioStreamerRef.current = new AudioStreamer((base64Data) => {
       if (sessionRef.current && !isMutedRef.current) {
@@ -229,7 +276,7 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
     >
       <div className="absolute top-4 right-4">
         <button 
-          onClick={onClose}
+          onClick={handleDisconnect}
           className="p-2 hover:bg-white/5 rounded-full transition-colors text-gray-400"
         >
           <PhoneOff className="w-6 h-6 text-red-500" />
@@ -331,7 +378,7 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
           </button>
           
           <button
-            onClick={onClose}
+            onClick={handleDisconnect}
             className="p-6 bg-red-600 text-white rounded-full hover:bg-red-700 transition-all shadow-xl shadow-red-600/20"
           >
             <PhoneOff className="w-8 h-8" />
