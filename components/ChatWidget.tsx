@@ -19,6 +19,112 @@ export default function ChatWidget() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Draggable states
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartPos = useRef({ x: 0, y: 0 });
+  const initialBubblePos = useRef({ x: 0, y: 0 });
+  const dragHasMoved = useRef(false);
+
+  // Load saved position and handle resize/bounds
+  useEffect(() => {
+    const savedPos = localStorage.getItem('chatWidgetPosition');
+    if (savedPos) {
+      try {
+        const parsed = JSON.parse(savedPos);
+        // Ensure the saved position is still within viewport in case window size changed
+        // We use an approximate button size if we don't have the ref, or we just delay the bounds check
+        // Or we can just check it against innerWidth/innerHeight roughly
+        const paddingX = 24;
+        const paddingY = 24;
+        const approxWidth = 200; // Max expanded width roughly
+        const approxHeight = 60;
+
+        const maxLeft = -(window.innerWidth - approxWidth - paddingX);
+        const maxRight = paddingX;
+        const maxUp = -(window.innerHeight - approxHeight - paddingY);
+        const maxDown = paddingY;
+
+        parsed.x = Math.max(maxLeft, Math.min(maxRight, parsed.x));
+        parsed.y = Math.max(maxUp, Math.min(maxDown, parsed.y));
+
+        setPosition(parsed);
+      } catch (e) {
+        console.error('Failed to parse saved chat widget position', e);
+      }
+    }
+  }, []);
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    // Only handle left click or touch
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragStartPos.current = { x: e.clientX, y: e.clientY };
+    initialBubblePos.current = { ...position };
+    dragHasMoved.current = false;
+    setIsDragging(true);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!isDragging) return;
+
+    const deltaX = e.clientX - dragStartPos.current.x;
+    const deltaY = e.clientY - dragStartPos.current.y;
+
+    if (!dragHasMoved.current && (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5)) {
+      dragHasMoved.current = true;
+    }
+
+    if (dragHasMoved.current) {
+      // Calculate new position
+      let newX = initialBubblePos.current.x + deltaX;
+      let newY = initialBubblePos.current.y + deltaY;
+
+      // Keep within viewport bounds
+      const buttonRect = e.currentTarget.getBoundingClientRect();
+      const paddingX = 24; // 6 * 4px (bottom-6 right-6)
+      const paddingY = 24;
+
+      // The button's position relative to its normal flow (which is bottom-right)
+      // If x < 0, it's moving left. Max left is when it hits the left edge.
+      const maxLeft = -(window.innerWidth - buttonRect.width - paddingX);
+      const maxRight = paddingX; // Can move right up to paddingX
+
+      const maxUp = -(window.innerHeight - buttonRect.height - paddingY);
+      const maxDown = paddingY; // Can move down up to paddingY
+
+      newX = Math.max(maxLeft, Math.min(maxRight, newX));
+      newY = Math.max(maxUp, Math.min(maxDown, newY));
+
+      setPosition({ x: newX, y: newY });
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!isDragging) return;
+
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    setIsDragging(false);
+
+    if (dragHasMoved.current) {
+      localStorage.setItem('chatWidgetPosition', JSON.stringify(position));
+    }
+  };
+
+  const handlePointerCancel = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!isDragging) return;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    setIsDragging(false);
+  };
+
+  const handleClick = () => {
+    if (!dragHasMoved.current) {
+      setIsOpen(!isOpen);
+    }
+  };
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Auto scroll to bottom
@@ -256,10 +362,17 @@ export default function ChatWidget() {
 
       {/* Toggle Button */}
       <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => setIsOpen(!isOpen)}
-        className="group relative flex items-center gap-3 bg-[#6cb2ff] text-white px-6 py-4 rounded-full shadow-2xl hover:bg-[#6cb2ff]/80 transition-all pointer-events-auto"
+        animate={{ x: position.x, y: position.y }}
+        transition={{ type: 'tween', duration: 0 }} // Instant update during drag
+        whileHover={isDragging ? undefined : { scale: 1.05 }}
+        whileTap={isDragging ? undefined : { scale: 0.95 }}
+        onClick={handleClick}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
+        style={{ touchAction: 'none' }}
+        className="group relative flex items-center gap-3 bg-[#6cb2ff] text-white px-6 py-4 rounded-full shadow-2xl hover:bg-[#6cb2ff]/80 transition-all pointer-events-auto select-none"
       >
         <span className="font-bold whitespace-nowrap overflow-hidden max-w-0 group-hover:max-w-[200px] transition-all duration-500 ease-in-out">
           Talk to Teacher Danner
