@@ -59,7 +59,6 @@ export class AudioStreamer {
     if (!this.playbackContext) {
       this.playbackContext = new (window.AudioContext || (window as any).webkitAudioContext)({
         latencyHint: 'interactive',
-        sampleRate: 24000,
       });
       console.log(`[Live] Playback AudioContext sampleRate: ${this.playbackContext.sampleRate}`);
 
@@ -186,6 +185,8 @@ export class AudioStreamer {
     const source = this.playbackContext.createBufferSource();
     source.buffer = audioBuffer;
 
+
+
     if (this.gainNode) {
       source.connect(this.gainNode);
     } else {
@@ -196,6 +197,8 @@ export class AudioStreamer {
     if (this.nextStartTime < currentTime) {
       this.nextStartTime = currentTime;
     }
+    console.log(`[Playback] PCM length: ${floatData.length}, contextRate: ${this.playbackContext.sampleRate}, bufferRate: ${audioBuffer.sampleRate}, queue: ${this.activeSources.size}, start: ${this.nextStartTime}, current: ${currentTime}`);
+
 
     this.activeSources.add(source);
     source.onended = () => {
