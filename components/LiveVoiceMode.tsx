@@ -31,34 +31,65 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
       hasPlayedDisconnectRef.current = true;
       try {
         const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const masterGain = audioCtx.createGain();
+        const filter = audioCtx.createBiquadFilter();
 
-        const playTone = (freq: number, startTime: number, duration: number) => {
-          const oscillator = audioCtx.createOscillator();
+        // Reduce harsh high frequencies
+        filter.type = 'lowpass';
+        filter.frequency.value = 1000;
+
+        // Overall volume control
+        masterGain.gain.value = 0.4;
+
+        filter.connect(masterGain);
+        masterGain.connect(audioCtx.destination);
+
+        const playTone = (freq: number, startTime: number, duration: number, volMultiplier: number = 1.0) => {
+          const oscSine = audioCtx.createOscillator();
+          const oscTri = audioCtx.createOscillator();
           const gainNode = audioCtx.createGain();
 
-          oscillator.type = 'sine';
-          oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime + startTime);
+          oscSine.type = 'sine';
+          oscTri.type = 'triangle';
 
+          oscSine.frequency.setValueAtTime(freq, audioCtx.currentTime + startTime);
+          oscTri.frequency.setValueAtTime(freq, audioCtx.currentTime + startTime);
+
+          // Smoother attack and natural decay
           gainNode.gain.setValueAtTime(0, audioCtx.currentTime + startTime);
-          gainNode.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + startTime + 0.05);
-          gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime + startTime + duration - 0.05);
-          gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + startTime + duration);
+          gainNode.gain.linearRampToValueAtTime(0.3 * volMultiplier, audioCtx.currentTime + startTime + 0.05); // Attack
+          gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + startTime + duration); // Decay
 
-          oscillator.connect(gainNode);
-          gainNode.connect(audioCtx.destination);
+          // Mix oscillators for warmer tone
+          const sineGain = audioCtx.createGain();
+          sineGain.gain.value = 0.7;
+          const triGain = audioCtx.createGain();
+          triGain.gain.value = 0.3;
 
-          oscillator.start(audioCtx.currentTime + startTime);
-          oscillator.stop(audioCtx.currentTime + startTime + duration);
+          oscSine.connect(sineGain);
+          oscTri.connect(triGain);
+
+          sineGain.connect(gainNode);
+          triGain.connect(gainNode);
+
+          gainNode.connect(filter);
+
+          oscSine.start(audioCtx.currentTime + startTime);
+          oscTri.start(audioCtx.currentTime + startTime);
+
+          oscSine.stop(audioCtx.currentTime + startTime + duration);
+          oscTri.stop(audioCtx.currentTime + startTime + duration);
         };
 
-        // Two short descending tones
-        playTone(440, 0, 0.15);
-        playTone(330, 0.2, 0.15);
+        // Three smooth descending, slightly overlapping tones
+        playTone(540, 0, 0.25, 1.0);
+        playTone(410, 0.18, 0.25, 0.8);
+        playTone(320, 0.36, 0.35, 0.5);
 
         // Close context after tones finish to prevent leak
         setTimeout(() => {
           audioCtx.close().catch(console.error);
-        }, 400);
+        }, 800);
 
         onClose();
       } catch (e) {
