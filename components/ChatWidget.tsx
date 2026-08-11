@@ -326,8 +326,21 @@ export default function ChatWidget() {
               )}
             </div>
 
-            {/* Input */}
-            <div className="p-4 bg-[#161b22] border-t border-gray-800">
+            {/* Input Area & Voice Mode Entry */}
+            <div className="p-4 bg-[#161b22] border-t border-gray-800 flex flex-col gap-3">
+              <button
+                onClick={() => setIsVoiceMode(true)}
+                className="w-full py-3 px-4 bg-[#6cb2ff]/10 hover:bg-[#6cb2ff]/20 border border-[#6cb2ff]/30 rounded-xl flex items-center justify-center gap-3 transition-colors group"
+              >
+                <div className="w-8 h-8 rounded-full bg-[#6cb2ff]/20 flex items-center justify-center group-hover:bg-[#6cb2ff] transition-colors">
+                  <Mic className="w-4 h-4 text-[#6cb2ff] group-hover:text-white transition-colors" />
+                </div>
+                <div className="flex flex-col items-start text-left">
+                  <span className="text-[#6cb2ff] font-bold text-sm">Speak with Teacher Danner</span>
+                  <span className="text-[#6cb2ff]/60 text-xs">Real-time voice conversation</span>
+                </div>
+              </button>
+
               <div className="relative flex items-center gap-2">
                 <div className="relative flex-1">
                   <input
@@ -337,15 +350,8 @@ export default function ChatWidget() {
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                     placeholder="Ask Teacher Danner..."
-                    className="w-full bg-[#0d1117] border border-gray-800 rounded-xl pl-4 pr-12 py-3 text-sm text-white focus:outline-none focus:border-[#6cb2ff] transition-colors"
+                    className="w-full bg-[#0d1117] border border-gray-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#6cb2ff] transition-colors"
                   />
-                  <button
-                    onClick={() => setIsVoiceMode(true)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-[#6cb2ff] transition-colors"
-                    title="Voice Mode"
-                  >
-                    <Mic className="w-5 h-5" />
-                  </button>
                 </div>
                 <button
                   onClick={handleSend}
