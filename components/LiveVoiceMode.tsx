@@ -22,6 +22,7 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
   
   const audioStreamerRef = useRef<AudioStreamer | null>(null);
   const sessionRef = useRef<any>(null);
+  const wakeLockRef = useRef<any>(null);
   const isMutedRef = useRef(isMuted);
 
   const hasPlayedDisconnectRef = useRef(false);
@@ -137,6 +138,50 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
     setLogs(prev => [msg, ...prev].slice(0, 5));
   }, []);
 
+
+  const requestWakeLock = useCallback(async () => {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLockRef.current = await navigator.wakeLock.request('screen');
+        addLog("Wake Lock acquired");
+      }
+    } catch (err: any) {
+      console.log(`Wake Lock error: ${err.message}`);
+    }
+  }, [addLog]);
+
+  const releaseWakeLock = useCallback(async () => {
+    if (wakeLockRef.current) {
+      try {
+        await wakeLockRef.current.release();
+        wakeLockRef.current = null;
+        addLog("Wake Lock released");
+      } catch (err: any) {
+        console.log(`Wake Lock release error: ${err.message}`);
+      }
+    }
+  }, [addLog]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isConnected) {
+        requestWakeLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isConnected, requestWakeLock]);
+
+  useEffect(() => {
+    return () => {
+      releaseWakeLock();
+    };
+  }, [releaseWakeLock]);
+
   const stopSession = useCallback(() => {
     if (sessionRef.current) {
       try {
@@ -149,7 +194,8 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
     audioStreamerRef.current?.stopCapture();
     setIsConnected(false);
     setIsConnecting(false);
-  }, []);
+    releaseWakeLock();
+  }, [releaseWakeLock]);
 
   const startSession = useCallback(async () => {
     const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
@@ -195,8 +241,7 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
             setIsConnected(true);
             setIsConnecting(false);
             audioStreamerRef.current?.startCapture();
-
-
+            requestWakeLock();
           },
           onmessage: (message: LiveServerMessage) => {
             const audioData = message.data;
@@ -258,7 +303,7 @@ export default function LiveVoiceMode({ onClose }: LiveVoiceModeProps) {
       setError(`Failed to connect: ${err.message}`);
       setIsConnecting(false);
     }
-  }, [stopSession, addLog]);
+  }, [stopSession, addLog, requestWakeLock]);
 
   useEffect(() => {
     if (!showExplanation) {
