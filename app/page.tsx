@@ -16,6 +16,7 @@ import {
   HeartPulse,
   Calendar,
   BookOpen,
+  Plane,
   GraduationCap
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
@@ -23,6 +24,16 @@ import QuizCard from '@/components/QuizCard';
 import ProgressSection from '@/components/ProgressSection';
 
 const QUIZZES = [
+  {
+    title: 'Airport Preparation for Travels',
+    description: 'Master airport vocabulary, practice real-world audio scenarios, and test your luggage scanning skills for safe travels.',
+    icon: Plane,
+    iconColor: 'text-sky-500',
+    iconBg: 'bg-sky-500/10',
+    actionText: 'Start Preparation',
+    actionColor: 'text-sky-500',
+    href: '/airport-master',
+  },
   {
     title: 'Quiz about English',
     description: 'Master the fundamentals of the global language. Practice grammar, vocabulary, and common phrases.',
