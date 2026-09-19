@@ -57,6 +57,9 @@ class AirportSpeechService {
       const utterance = new SpeechSynthesisUtterance(text);
       this.currentUtterance = utterance;
 
+      // Enforce English language fallback specifically for mobile browsers that default to system language
+      utterance.lang = 'en-US';
+
       // Find an English voice (en-US or en-GB)
       const voices = window.speechSynthesis.getVoices();
       const englishVoice =
@@ -115,6 +118,7 @@ class AirportSpeechService {
     }
 
     const utterance = new SpeechSynthesisUtterance(term);
+    utterance.lang = 'en-US'; // Enforce English on mobile devices
     const voices = window.speechSynthesis.getVoices();
     const enVoice = voices.find((v) => v.lang.startsWith('en')) || null;
     if (enVoice) utterance.voice = enVoice;
