@@ -2,6 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { Search, Volume2, Radio, CheckCircle2, Filter, Sparkles, BookOpen } from 'lucide-react';
 import { VOCABULARY_LIST } from '../data/airportData';
 import { WordCategory, VocabularyItem } from '../types';
+import { HoverText } from './HoverTranslator';
+import { ptTranslations } from '../data/translations';
 import { airportSpeech } from '../services/speechSynthesis';
 import { playClickSound } from '../services/soundEffects';
 
@@ -131,13 +133,13 @@ export const VocabularyVault: React.FC<VocabularyVaultProps> = ({
 
                 {/* Definition */}
                 <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
-                  {word.definition}
+                  <HoverText text={word.definition} translation={ptTranslations[word.definition] || "Tradução não disponível."} />
                 </p>
 
                 {/* Example sentence */}
                 {word.exampleSentences[0] && (
                   <div className="text-[11px] text-slate-400 italic">
-                    &quot;{word.exampleSentences[0]}&quot;
+                    <HoverText text={`"${word.exampleSentences[0]}"`} translation={ptTranslations[word.exampleSentences[0]] || "Tradução não disponível."} />
                   </div>
                 )}
               </div>
