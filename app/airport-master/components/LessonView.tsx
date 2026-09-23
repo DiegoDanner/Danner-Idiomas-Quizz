@@ -4,6 +4,8 @@ import {
   HelpCircle, Lightbulb, Sparkles, Check, ChevronRight, BookOpen, AlertCircle
 } from 'lucide-react';
 import { WordCategory, VocabularyItem } from '../types';
+import { HoverText } from './HoverTranslator';
+import { ptTranslations } from '../data/translations';
 import { VOCABULARY_LIST, GRAMMAR_TIPS } from '../data/airportData';
 import { airportSpeech } from '../services/speechSynthesis';
 import { playCorrectSound, playWrongSound, playClickSound } from '../services/soundEffects';
@@ -305,7 +307,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
                     </div>
 
                     <p className="text-sm text-slate-300 leading-relaxed bg-slate-950/50 p-3.5 rounded-xl border border-slate-800/80">
-                      {currentWord.definition}
+                      <HoverText text={currentWord.definition} translation={ptTranslations[currentWord.definition] || "Tradução não disponível."} />
                     </p>
 
                     {/* Audio Buttons */}
@@ -348,7 +350,9 @@ export const LessonView: React.FC<LessonViewProps> = ({
                         <span className="w-5 h-5 rounded-full bg-sky-950 text-sky-400 border border-sky-800 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
                           {idx + 1}
                         </span>
-                        <p className="italic font-medium">{example}</p>
+                        <p className="italic font-medium">
+                          <HoverText text={example} translation={ptTranslations[example] || "Tradução não disponível."} />
+                        </p>
                       </div>
                     ))}
                   </div>
