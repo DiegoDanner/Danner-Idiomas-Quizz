@@ -1,5 +1,6 @@
 import React from 'react';
-import { Volume2, VolumeX, Flame, Award, Compass, User, Info } from 'lucide-react';
+import Link from 'next/link';
+import { Volume2, VolumeX, Flame, Award, Compass, User, Info, ArrowLeft } from 'lucide-react';
 import { UserProgress } from '../types';
 import { calculateLevel } from '../hooks/useUserProgress';
 
@@ -98,6 +99,15 @@ export const Header: React.FC<HeaderProps> = ({
               />
             </div>
           </div>
+
+
+          <Link
+            href="/"
+            className="p-2 flex items-center justify-center rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            title="Return to Main Website"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Link>
 
           {/* Sound Toggle */}
           <button
