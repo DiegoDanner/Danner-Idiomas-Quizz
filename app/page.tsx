@@ -25,6 +25,16 @@ import ProgressSection from '@/components/ProgressSection';
 
 const QUIZZES = [
   {
+    title: 'Betty Botter Lab',
+    description: 'Master English pronunciation with this interactive tongue twister slide lab. Practice vowels, speed, and comprehension.',
+    icon: Mic,
+    iconColor: 'text-amber-500',
+    iconBg: 'bg-amber-500/10',
+    actionText: 'Start Lab',
+    actionColor: 'text-amber-500',
+    href: '/quiz/betty-botter',
+  },
+  {
     title: 'Airport Preparation for Travels',
     description: 'Master airport vocabulary, practice real-world audio scenarios, and test your luggage scanning skills for safe travels.',
     icon: Plane,

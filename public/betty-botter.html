@@ -1,0 +1,1613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>👅 Betty Botter — Tongue Twister Slide Lab</title>
+  <!-- Google Fonts: Fredoka & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Fredoka', 'cursive', 'sans-serif'],
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+          },
+          colors: {
+            butter: {
+              50: '#fffdf5',
+              100: '#fef9c3',
+              200: '#fef08a',
+              300: '#fde047',
+              400: '#facc15',
+              500: '#eab308',
+              600: '#ca8a04',
+            }
+          },
+          keyframes: {
+            cardEnter: {
+              '0%': { opacity: '0', transform: 'translateY(16px) scale(0.985)' },
+              '100%': { opacity: '1', transform: 'translateY(0) scale(1)' }
+            },
+            pulseGlow: {
+              '0%, 100%': { transform: 'scale(1)', boxShadow: '0 0 0 0 rgba(234, 179, 8, 0.4)' },
+              '50%': { transform: 'scale(1.02)', boxShadow: '0 0 0 8px rgba(234, 179, 8, 0)' }
+            },
+            floatSlow: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-6px)' }
+            }
+          },
+          animation: {
+            'card-enter': 'cardEnter 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+            'pulse-glow': 'pulseGlow 2s infinite ease-in-out',
+            'float-slow': 'floatSlow 3s infinite ease-in-out',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom Scrollbar for inner card scrolling if needed */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #fef9c3;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #facc15;
+      border-radius: 9999px;
+    }
+    /* Karaoke Highlight State */
+    .karaoke-active {
+      background: linear-gradient(120deg, #fef08a 0%, #fde047 100%) !important;
+      border-color: #ca8a04 !important;
+      transform: scale(1.015);
+      box-shadow: 0 10px 20px -5px rgba(234, 179, 8, 0.25);
+    }
+    /* Visual Beat Marker for Metronome */
+    .beat-active {
+      transform: scale(1.1) !important;
+      background-color: #f59e0b !important;
+      color: white !important;
+      box-shadow: 0 0 14px #f59e0b !important;
+    }
+    .beat-active span {
+      color: white !important;
+    }
+  </style>
+</head>
+<body class="bg-amber-50/70 text-stone-800 font-sans antialiased min-h-screen flex flex-col justify-between selection:bg-amber-200 selection:text-amber-900 transition-colors duration-300">
+
+  <!-- Confetti Canvas for Celebrations -->
+  <canvas id="confettiCanvas" class="fixed inset-0 pointer-events-none z-50 w-full h-full"></canvas>
+
+  <!-- Interactive Toast Notification System -->
+  <div id="toastContainer" class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- TOP CONTROL HEADER WITH STEP PROGRESS -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-amber-200/90 shadow-sm">
+    <div class="max-w-6xl mx-auto px-4 py-2.5 space-y-2">
+
+      <!-- Top Row: Title, Audio Settings & Teacher Mode -->
+      <div class="flex flex-wrap items-center justify-between gap-3">
+
+        <!-- Brand & Lesson Indicator -->
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl filter drop-shadow">👅</span>
+          <div>
+            <h1 class="text-base sm:text-lg font-display font-bold text-stone-900 tracking-tight leading-tight flex items-center gap-1.5">
+              <span>Betty Botter Lab</span>
+              <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 hidden sm:inline-block">
+                Slide Mode
+              </span>
+            </h1>
+          </div>
+        </div>
+
+        <!-- Right Controls: Audio Accent, Speed & PT-BR Guide -->
+        <div class="flex items-center flex-wrap gap-2 text-xs font-semibold">
+
+          <!-- Accent Selector -->
+          <div class="flex items-center bg-amber-50/90 rounded-xl px-2.5 py-1 border border-amber-200">
+            <span class="text-stone-500 mr-1.5 hidden sm:inline">🎙️ Voz:</span>
+            <select id="voiceAccentSelect" class="bg-transparent text-amber-900 font-bold focus:outline-none cursor-pointer">
+              <option value="US">🇺🇸 US English</option>
+              <option value="UK">🇬🇧 UK English</option>
+            </select>
+          </div>
+
+          <!-- Speed Selector -->
+          <div class="flex items-center bg-amber-50/90 rounded-xl px-2.5 py-1 border border-amber-200">
+            <span class="text-stone-500 mr-1.5 hidden sm:inline">⚡ Vel:</span>
+            <select id="voiceSpeedSelect" class="bg-transparent text-amber-900 font-bold focus:outline-none cursor-pointer">
+              <option value="0.75">🐢 0.75x</option>
+              <option value="1.0" selected>🚶 1.0x</option>
+              <option value="1.3">🐆 1.3x</option>
+            </select>
+          </div>
+
+          <!-- Teacher Notes / Portuguese Mode -->
+          <button id="toggleTeacherNotesBtn" onclick="toggleTeacherNotes()" class="px-2.5 py-1 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 transition flex items-center gap-1 border border-stone-300">
+            <span>🇧🇷</span>
+            <span id="teacherNotesLabel" class="hidden sm:inline">Dicas em PT</span>
+          </button>
+
+          <!-- Audio stop quick action -->
+          <button onclick="stopSpeech()" title="Parar Áudios" class="px-2 py-1 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition">
+            ⏹️
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Bottom Row: Progress Bar & Stepper Tabs -->
+      <div class="pt-1">
+        <!-- Visual Progress Bar -->
+        <div class="w-full bg-stone-100 rounded-full h-2 overflow-hidden border border-amber-100">
+          <div id="progressBarFill" class="bg-gradient-to-r from-amber-400 to-amber-500 h-full rounded-full transition-all duration-300" style="width: 14.28%;"></div>
+        </div>
+
+        <!-- 7-Slide Navigation Pills (Clickable to jump directly to any card) -->
+        <div class="flex items-center justify-between gap-1 mt-2 overflow-x-auto pb-1 text-[11px] font-bold">
+          <button onclick="goToCard(0)" class="slide-nav-pill px-2.5 py-1 rounded-lg transition whitespace-nowrap flex items-center gap-1 bg-amber-500 text-white shadow-sm" data-card="0">
+            <span>👅</span> <span class="hidden md:inline">Trava-língua</span>
+          </button>
+          <button onclick="goToCard(1)" class="slide-nav-pill px-2.5 py-1 rounded-lg transition whitespace-nowrap flex items-center gap-1 bg-stone-100 text-stone-600 hover:bg-amber-100" data-card="1">
+            <span>🗣️</span> <span class="hidden md:inline">Ex 1: Palavras</span>
+          </button>
+          <button onclick="goToCard(2)" class="slide-nav-pill px-2.5 py-1 rounded-lg transition whitespace-nowrap flex items-center gap-1 bg-stone-100 text-stone-600 hover:bg-amber-100" data-card="2">
+            <span>🎯</span> <span class="hidden md:inline">Ex 2: Vogais & Metrônomo</span>
+          </button>
+          <button onclick="goToCard(3)" class="slide-nav-pill px-2.5 py-1 rounded-lg transition whitespace-nowrap flex items-center gap-1 bg-stone-100 text-stone-600 hover:bg-amber-100" data-card="3">
+            <span>🔄</span> <span class="hidden md:inline">Ex 3: Repetição</span>
+          </button>
+          <button onclick="goToCard(4)" class="slide-nav-pill px-2.5 py-1 rounded-lg transition whitespace-nowrap flex items-center gap-1 bg-stone-100 text-stone-600 hover:bg-amber-100" data-card="4">
+            <span>🧠</span> <span class="hidden md:inline">Ex 4: Quiz Auditivo</span>
+          </button>
+          <button onclick="goToCard(5)" class="slide-nav-pill px-2.5 py-1 rounded-lg transition whitespace-nowrap flex items-center gap-1 bg-stone-100 text-stone-600 hover:bg-amber-100" data-card="5">
+            <span>⚡</span> <span class="hidden md:inline">Ex 5: Velocidade</span>
+          </button>
+          <button onclick="goToCard(6)" class="slide-nav-pill px-2.5 py-1 rounded-lg transition whitespace-nowrap flex items-center gap-1 bg-stone-100 text-stone-600 hover:bg-amber-100" data-card="6">
+            <span>📖</span> <span class="hidden md:inline">História</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- MAIN SLIDE DECK CONTAINER (Displays only 1 card at a time) -->
+  <main class="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 flex flex-col justify-center">
+
+    <!-- =========================================================================
+         CARD 1: THE TONGUE TWISTER (RHYME + KARAOKE + 4 CORE B'S)
+         ========================================================================= -->
+    <section id="card-0" class="card-slide bg-white rounded-3xl p-6 sm:p-9 border-2 border-amber-200/90 shadow-xl space-y-6 animate-card-enter">
+
+      <!-- Card Top Badge & Title -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-4">
+        <div>
+          <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-bold uppercase tracking-wider border border-amber-300">
+            Card 1 de 7 • The Master Rhyme
+          </span>
+          <h2 class="text-2xl sm:text-4xl font-display font-extrabold text-stone-900 mt-1">
+            👅 Betty Botter — Tongue Twister
+          </h2>
+          <p class="text-sm text-stone-600">
+            Toque nos versos para ouvir linha por linha ou inicie o Karaokê automático!
+          </p>
+        </div>
+
+        <!-- Master Playback Buttons -->
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <button id="karaokePlayBtn" onclick="toggleKaraoke()" class="px-5 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-bold text-xs sm:text-sm shadow-md transition flex items-center gap-2">
+            <span id="karaokeBtnIcon">▶️</span>
+            <span id="karaokeBtnText">Play Karaokê</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Visual Layout: Rhyme Verses + Betty SVG Illustration -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+
+        <!-- Left: The 5 Lines of Betty Botter -->
+        <div class="lg:col-span-8 space-y-2.5" id="poemVersesContainer">
+
+          <!-- Line 1 -->
+          <div data-line-index="0" class="poem-line p-3 sm:p-4 rounded-2xl border-2 border-stone-200 bg-stone-50/60 transition-all duration-300 flex items-center justify-between gap-2 group hover:border-amber-300">
+            <div class="font-display font-bold text-base sm:text-xl text-stone-800 leading-snug">
+              BETTY BOTTER BOUGHT SOME <span class="text-amber-700 underline decoration-amber-300 cursor-pointer" onclick="speakWord('butter')">BUTTER</span> BUT SHE SAID <span class="text-rose-700">“THIS BUTTER’S BITTER”</span>
+            </div>
+            <button onclick="speakPoemLine(0)" class="p-2 rounded-xl bg-white group-hover:bg-amber-400 text-stone-600 group-hover:text-amber-950 transition shadow-sm border border-stone-200 flex-shrink-0">🔊</button>
+          </div>
+
+          <!-- Line 2 -->
+          <div data-line-index="1" class="poem-line p-3 sm:p-4 rounded-2xl border-2 border-stone-200 bg-stone-50/60 transition-all duration-300 flex items-center justify-between gap-2 group hover:border-amber-300">
+            <div class="font-display font-bold text-base sm:text-xl text-stone-800 leading-snug">
+              “IF I PUT IT IN MY <span class="text-sky-700 underline decoration-sky-300 cursor-pointer" onclick="speakWord('batter')">BATTER</span> IT WOULD MAKE MY BATTER BITTER”
+            </div>
+            <button onclick="speakPoemLine(1)" class="p-2 rounded-xl bg-white group-hover:bg-amber-400 text-stone-600 group-hover:text-amber-950 transition shadow-sm border border-stone-200 flex-shrink-0">🔊</button>
+          </div>
+
+          <!-- Line 3 -->
+          <div data-line-index="2" class="poem-line p-3 sm:p-4 rounded-2xl border-2 border-stone-200 bg-stone-50/60 transition-all duration-300 flex items-center justify-between gap-2 group hover:border-amber-300">
+            <div class="font-display font-bold text-base sm:text-xl text-stone-800 leading-snug">
+              SO SHE BOUGHT A BIT OF <span class="text-emerald-700 font-black">BETTER BUTTER</span>, PUT IT IN HER BITTER BATTER,
+            </div>
+            <button onclick="speakPoemLine(2)" class="p-2 rounded-xl bg-white group-hover:bg-amber-400 text-stone-600 group-hover:text-amber-950 transition shadow-sm border border-stone-200 flex-shrink-0">🔊</button>
+          </div>
+
+          <!-- Line 4 -->
+          <div data-line-index="3" class="poem-line p-3 sm:p-4 rounded-2xl border-2 border-stone-200 bg-stone-50/60 transition-all duration-300 flex items-center justify-between gap-2 group hover:border-amber-300">
+            <div class="font-display font-bold text-base sm:text-xl text-stone-800 leading-snug">
+              MADE HER BITTER BATTER BETTER, SO ’TIS BETTER.
+            </div>
+            <button onclick="speakPoemLine(3)" class="p-2 rounded-xl bg-white group-hover:bg-amber-400 text-stone-600 group-hover:text-amber-950 transition shadow-sm border border-stone-200 flex-shrink-0">🔊</button>
+          </div>
+
+          <!-- Line 5 -->
+          <div data-line-index="4" class="poem-line p-3 sm:p-4 rounded-2xl border-2 border-stone-200 bg-stone-50/60 transition-all duration-300 flex items-center justify-between gap-2 group hover:border-amber-300">
+            <div class="font-display font-bold text-base sm:text-xl text-stone-800 leading-snug">
+              BETTY BOTTER BOUGHT A BIT OF <span class="text-emerald-700 font-black">BETTER BUTTER</span>.
+            </div>
+            <button onclick="speakPoemLine(4)" class="p-2 rounded-xl bg-white group-hover:bg-amber-400 text-stone-600 group-hover:text-amber-950 transition shadow-sm border border-stone-200 flex-shrink-0">🔊</button>
+          </div>
+
+        </div>
+
+        <!-- Right: Betty Botter SVG Mascot Drawing -->
+        <div class="lg:col-span-4 flex flex-col items-center justify-center p-4 bg-amber-50/80 rounded-2xl border border-amber-200 text-center">
+          <div class="w-40 h-40 relative animate-float-slow">
+            <svg viewBox="0 0 200 200" class="w-full h-full" fill="none">
+              <!-- Chef Hat -->
+              <ellipse cx="100" cy="50" rx="35" ry="25" fill="#FEF3C7" stroke="#D97706" stroke-width="3"/>
+              <circle cx="80" cy="40" r="18" fill="#FEF3C7" stroke="#D97706" stroke-width="3"/>
+              <circle cx="120" cy="40" r="18" fill="#FEF3C7" stroke="#D97706" stroke-width="3"/>
+              <rect x="75" y="60" width="50" height="15" rx="5" fill="#FDE68A" stroke="#D97706" stroke-width="3"/>
+              <!-- Head -->
+              <circle cx="100" cy="98" r="32" fill="#FED7AA" stroke="#EA580C" stroke-width="2.5"/>
+              <!-- Cheeks -->
+              <circle cx="83" cy="105" r="5" fill="#FCA5A5" opacity="0.6"/>
+              <circle cx="117" cy="105" r="5" fill="#FCA5A5" opacity="0.6"/>
+              <!-- Eyes with friendly wink -->
+              <circle cx="88" cy="95" r="4" fill="#451A03"/>
+              <circle cx="112" cy="95" r="4" fill="#451A03"/>
+              <!-- Smile with tongue -->
+              <path d="M92 110 Q100 120 108 110" stroke="#451A03" stroke-width="3" stroke-linecap="round"/>
+              <path d="M96 114 Q100 125 104 114 Z" fill="#F43F5E"/>
+              <!-- Blue Apron -->
+              <path d="M70 135 Q100 125 130 135 L145 190 H55 Z" fill="#38BDF8" stroke="#0284C7" stroke-width="3"/>
+              <!-- Butter Bowl in Hand -->
+              <ellipse cx="100" cy="165" rx="20" ry="12" fill="#FCD34D" stroke="#B45309" stroke-width="2"/>
+              <path d="M100 145 L100 165" stroke="#78716C" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <span class="mt-2 text-xs font-bold text-amber-900 bg-white px-3 py-1 rounded-full border border-amber-300 shadow-sm">
+            Chef Betty Botter 👩‍🍳
+          </span>
+          <p class="text-[11px] text-stone-500 mt-1 teacher-notes-panel hidden">
+            Dica do Professor: Clique nas palavras coloridas para ouvir a distinção das vogais!
+          </p>
+        </div>
+
+      </div>
+
+      <!-- Mini Quick-Bar: The 4 Core 'B' Words -->
+      <div class="p-4 rounded-2xl bg-amber-50/70 border border-amber-200">
+        <span class="text-xs font-bold text-stone-600 block mb-2">⚡ Os 4 Sons Chave (Clique para praticar a transição):</span>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <button onclick="speakWord('butter')" class="p-2.5 rounded-xl bg-white hover:bg-amber-100 border border-amber-300 text-stone-800 font-display font-bold text-sm flex items-center justify-center gap-1.5 transition">
+            <span>🧈 butter</span>
+            <span class="text-[10px] text-stone-500 font-mono">/ʌ/</span>
+          </button>
+          <button onclick="speakWord('better')" class="p-2.5 rounded-xl bg-white hover:bg-emerald-100 border border-emerald-300 text-stone-800 font-display font-bold text-sm flex items-center justify-center gap-1.5 transition">
+            <span>👍 better</span>
+            <span class="text-[10px] text-stone-500 font-mono">/ɛ/</span>
+          </button>
+          <button onclick="speakWord('bitter')" class="p-2.5 rounded-xl bg-white hover:bg-rose-100 border border-rose-300 text-stone-800 font-display font-bold text-sm flex items-center justify-center gap-1.5 transition">
+            <span>😖 bitter</span>
+            <span class="text-[10px] text-stone-500 font-mono">/ɪ/</span>
+          </button>
+          <button onclick="speakWord('batter')" class="p-2.5 rounded-xl bg-white hover:bg-sky-100 border border-sky-300 text-stone-800 font-display font-bold text-sm flex items-center justify-center gap-1.5 transition">
+            <span>🥣 batter</span>
+            <span class="text-[10px] text-stone-500 font-mono">/æ/</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Card Action Navigation Buttons -->
+      <div class="flex items-center justify-end pt-2">
+        <button onclick="nextCard()" class="px-6 py-3 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-display font-bold text-sm shadow-md transition flex items-center gap-2 group">
+          <span>Ir para Exercício 1</span>
+          <span class="group-hover:translate-x-1 transition-transform">➡️</span>
+        </button>
+      </div>
+
+    </section>
+
+    <!-- =========================================================================
+         CARD 2: EXERCISE 1 — SIMILAR-SOUNDING WORDS (3X CHALLENGE)
+         ========================================================================= -->
+    <section id="card-1" class="card-slide hidden bg-white rounded-3xl p-6 sm:p-9 border-2 border-amber-200/90 shadow-xl space-y-6 animate-card-enter">
+
+      <!-- Card Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-4">
+        <div>
+          <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-indigo-100 text-indigo-900 text-xs font-bold uppercase tracking-wider border border-indigo-200">
+            Card 2 de 7 • Drill 1
+          </span>
+          <h2 class="text-2xl sm:text-3xl font-display font-extrabold text-stone-900 mt-1">
+            🗣️ Exercise 1 — Similar-sounding words
+          </h2>
+          <p class="text-sm text-stone-600">
+            Repeat each group slowly first, then faster.
+          </p>
+        </div>
+
+        <div class="bg-amber-100/90 text-amber-900 px-3.5 py-1.5 rounded-xl text-xs font-bold border border-amber-300 flex items-center gap-1">
+          <span>👉 Desafio: Diga 3 vezes sem parar!</span>
+        </div>
+      </div>
+
+      <!-- 4 Sound Groups Grid: A, B, C, D -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        <!-- Group A -->
+        <div class="p-4 sm:p-5 rounded-2xl border-2 border-stone-200 bg-stone-50/70 hover:border-amber-300 transition space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="w-8 h-8 rounded-xl bg-amber-500 text-white font-display font-bold flex items-center justify-center text-sm shadow-sm">A</span>
+            <button onclick="speakSequence(['butter', 'better', 'bitter', 'batter'])" class="text-xs font-bold text-amber-800 bg-amber-100 hover:bg-amber-200 px-2.5 py-1 rounded-lg transition flex items-center gap-1">
+              <span>🔊 Ouvir Grupo A</span>
+            </button>
+          </div>
+          <p class="text-xl sm:text-2xl font-display font-bold text-stone-800 text-center py-2">
+            butter – better – bitter – batter
+          </p>
+          <div class="pt-2 border-t border-stone-200 flex items-center justify-between">
+            <span class="text-xs font-medium text-stone-500">Repetições:</span>
+            <div class="flex gap-1.5" id="groupA-checks">
+              <button onclick="toggleGroupCheck('A', 1)" class="w-8 h-8 rounded-lg border-2 border-stone-300 text-xs font-bold hover:bg-amber-100 transition">1</button>
+              <button onclick="toggleGroupCheck('A', 2)" class="w-8 h-8 rounded-lg border-2 border-stone-300 text-xs font-bold hover:bg-amber-100 transition">2</button>
+              <button onclick="toggleGroupCheck('A', 3)" class="w-8 h-8 rounded-lg border-2 border-stone-300 text-xs font-bold hover:bg-amber-100 transition">3</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Group B -->
+        <div class="p-4 sm:p-5 rounded-2xl border-2 border-stone-200 bg-stone-50/70 hover:border-amber-300 transition space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="w-8 h-8 rounded-xl bg-amber-500 text-white font-display font-bold flex items-center justify-center text-sm shadow-sm">B</span>
+            <button onclick="speakSequence(['better', 'batter', 'bitter', 'butter'])" class="text-xs font-bold text-amber-800 bg-amber-100 hover:bg-amber-200 px-2.5 py-1 rounded-lg transition flex items-center gap-1">
+              <span>🔊 Ouvir Grupo B</span>
+            </button>
+          </div>
+          <p class="text-xl sm:text-2xl font-display font-bold text-stone-800 text-center py-2">
+            better – batter – bitter – butter
+          </p>
+          <div class="pt-2 border-t border-stone-200 flex items-center justify-between">
+            <span class="text-xs font-medium text-stone-500">Repetições:</span>
+            <div class="flex gap-1.5" id="groupB-checks">
+              <button onclick="toggleGroupCheck('B', 1)" class="w-8 h-8 rounded-lg border-2 border-stone-300 text-xs font-bold hover:bg-amber-100 transition">1</button>
+              <button onclick="toggleGroupCheck('B', 2)" class="w-8 h-8 rounded-lg border-2 border-stone-300 text-xs font-bold hover:bg-amber-100 transition">2</button>
+              <button onclick="toggleGroupCheck('B', 3)" class="w-8 h-8 rounded-lg border-2 border-stone-300 text-xs font-bold hover:bg-amber-100 transition">3</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Group C -->
+        <div class="p-4 sm:p-5 rounded-2xl border-2 border-stone-200 bg-stone-50/70 hover:border-amber-300 transition space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="w-8 h-8 rounded-xl bg-amber-500 text-white font-display font-bold flex items-center justify-center text-sm shadow-sm">C</span>
+            <button onclick="speakSequence(['Betty', 'better', 'bitter', 'batter'])" class="text-xs font-bold text-amber-800 bg-amber-100 hover:bg-amber-200 px-2.5 py-1 rounded-lg transition flex items-center gap-1">
+              <span>🔊 Ouvir Grupo C</span>
+            </button>
+          </div>
+          <p class="text-xl sm:text-2xl font-display font-bold text-stone-800 text-center py-2">
+            Betty – better – bitter – batter
+          </p>
+          <div class="pt-2 border-t border-stone-200 flex items-center justify-between">
+            <span class="text-xs font-medium text-stone-500">Repetições:</span>
+            <div class="flex gap-1.5" id="groupC-checks">
+              <button onclick="toggleGroupCheck('C', 1)" class="w-8 h-8 rounded-lg border-2 border-stone-300 text-xs font-bold hover:bg-amber-100 transition">1</button>
+              <button onclick="toggleGroupCheck('C', 2)" class="w-8 h-8 rounded-lg border-2 border-stone-300 text-xs font-bold hover:bg-amber-100 transition">2</button>
+              <button onclick="toggleGroupCheck('C', 3)" class="w-8 h-8 rounded-lg border-2 border-stone-300 text-xs font-bold hover:bg-amber-100 transition">3</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Group D -->
+        <div class="p-4 sm:p-5 rounded-2xl border-2 border-stone-200 bg-stone-50/70 hover:border-amber-300 transition space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="w-8 h-8 rounded-xl bg-amber-500 text-white font-display font-bold flex items-center justify-center text-sm shadow-sm">D</span>
+            <button onclick="speakSequence(['bit', 'bitter', 'batter', 'better'])" class="text-xs font-bold text-amber-800 bg-amber-100 hover:bg-amber-200 px-2.5 py-1 rounded-lg transition flex items-center gap-1">
+              <span>🔊 Ouvir Grupo D</span>
+            </button>
+          </div>
+          <p class="text-xl sm:text-2xl font-display font-bold text-stone-800 text-center py-2">
+            bit – bitter – batter – better
+          </p>
+          <div class="pt-2 border-t border-stone-200 flex items-center justify-between">
+            <span class="text-xs font-medium text-stone-500">Repetições:</span>
+            <div class="flex gap-1.5" id="groupD-checks">
+              <button onclick="toggleGroupCheck('D', 1)" class="w-8 h-8 rounded-lg border-2 border-stone-300 text-xs font-bold hover:bg-amber-100 transition">1</button>
+              <button onclick="toggleGroupCheck('D', 2)" class="w-8 h-8 rounded-lg border-2 border-stone-300 text-xs font-bold hover:bg-amber-100 transition">2</button>
+              <button onclick="toggleGroupCheck('D', 3)" class="w-8 h-8 rounded-lg border-2 border-stone-300 text-xs font-bold hover:bg-amber-100 transition">3</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Card Action Navigation Buttons -->
+      <div class="flex items-center justify-between pt-2 border-t border-stone-100">
+        <button onclick="prevCard()" class="px-5 py-2.5 rounded-2xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-display font-bold text-xs sm:text-sm transition flex items-center gap-1.5">
+          <span>⬅️ Anterior</span>
+        </button>
+        <button onclick="nextCard()" class="px-6 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-display font-bold text-xs sm:text-sm shadow-md transition flex items-center gap-1.5">
+          <span>Próximo: Exercício 2 ➡️</span>
+        </button>
+      </div>
+
+    </section>
+
+    <!-- =========================================================================
+         CARD 3: EXERCISE 2 — FOCUS ON THE VOWEL & VOCAL METRONOME
+         ========================================================================= -->
+    <section id="card-2" class="card-slide hidden bg-white rounded-3xl p-6 sm:p-9 border-2 border-amber-200/90 shadow-xl space-y-6 animate-card-enter">
+
+      <!-- Card Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-4">
+        <div>
+          <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-rose-100 text-rose-900 text-xs font-bold uppercase tracking-wider border border-rose-200">
+            Card 3 de 7 • Drill 2
+          </span>
+          <h2 class="text-2xl sm:text-3xl font-display font-extrabold text-stone-900 mt-1">
+            🎯 Exercise 2 — Focus on the vowel
+          </h2>
+          <p class="text-sm text-stone-600">
+            The main challenge is changing the vowel while keeping the rest of the word similar.
+          </p>
+        </div>
+      </div>
+
+      <!-- Vowel IPA Phonetic Comparison Table -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-amber-50 text-xs font-bold text-amber-900 uppercase border-b-2 border-amber-200">
+              <th class="py-2.5 px-3 rounded-l-xl">Word</th>
+              <th class="py-2.5 px-3">Main vowel sound</th>
+              <th class="py-2.5 px-3">Keyword</th>
+              <th class="py-2.5 px-3">Articulação</th>
+              <th class="py-2.5 px-3 text-center rounded-r-xl">Audio</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-stone-100 text-xs sm:text-sm font-semibold">
+            <!-- batter -->
+            <tr class="hover:bg-sky-50/50 transition">
+              <td class="py-2.5 px-3 font-display font-bold text-base text-sky-900">batter</td>
+              <td class="py-2.5 px-3 font-mono font-bold text-sky-700 bg-sky-50 rounded-lg inline-block my-1">/æ/</td>
+              <td class="py-2.5 px-3 text-stone-600">TRAP (cat)</td>
+              <td class="py-2.5 px-3 text-stone-500 text-xs">Mandíbula bem baixa, boca aberta.</td>
+              <td class="py-2.5 px-3 text-center">
+                <button onclick="speakWord('batter')" class="p-1.5 rounded-lg bg-sky-100 hover:bg-sky-200 text-sky-800 transition">🔊</button>
+              </td>
+            </tr>
+            <!-- better -->
+            <tr class="hover:bg-emerald-50/50 transition">
+              <td class="py-2.5 px-3 font-display font-bold text-base text-emerald-900">better</td>
+              <td class="py-2.5 px-3 font-mono font-bold text-emerald-700 bg-emerald-50 rounded-lg inline-block my-1">/ɛ/</td>
+              <td class="py-2.5 px-3 text-stone-600">DRESS (bed)</td>
+              <td class="py-2.5 px-3 text-stone-500 text-xs">Abertura média, leve sorriso.</td>
+              <td class="py-2.5 px-3 text-center">
+                <button onclick="speakWord('better')" class="p-1.5 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-800 transition">🔊</button>
+              </td>
+            </tr>
+            <!-- bitter -->
+            <tr class="hover:bg-rose-50/50 transition">
+              <td class="py-2.5 px-3 font-display font-bold text-base text-rose-900">bitter</td>
+              <td class="py-2.5 px-3 font-mono font-bold text-rose-700 bg-rose-50 rounded-lg inline-block my-1">/ɪ/</td>
+              <td class="py-2.5 px-3 text-stone-600">KIT (sit)</td>
+              <td class="py-2.5 px-3 text-stone-500 text-xs">Vogal curta e rápida, dentes mais próximos.</td>
+              <td class="py-2.5 px-3 text-center">
+                <button onclick="speakWord('bitter')" class="p-1.5 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-800 transition">🔊</button>
+              </td>
+            </tr>
+            <!-- butter -->
+            <tr class="hover:bg-amber-50/50 transition">
+              <td class="py-2.5 px-3 font-display font-bold text-base text-amber-900">butter</td>
+              <td class="py-2.5 px-3 font-mono font-bold text-amber-700 bg-amber-50 rounded-lg inline-block my-1">/ʌ/</td>
+              <td class="py-2.5 px-3 text-stone-600">STRUT (cup)</td>
+              <td class="py-2.5 px-3 text-stone-500 text-xs">Lábios e língua relaxados no centro.</td>
+              <td class="py-2.5 px-3 text-center">
+                <button onclick="speakWord('butter')" class="p-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-800 transition">🔊</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Interactive Metronome Studio Box -->
+      <div class="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl p-5 border border-amber-200 space-y-4">
+
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h4 class="font-display font-bold text-base sm:text-lg text-stone-900 flex items-center gap-2">
+              <span>🥁 Rhythmic Drill: BAT – BET – BIT – BUT (3x)</span>
+            </h4>
+            <p class="text-xs text-stone-500">Acompanhe a batida do metrônomo para treinar a troca rápida de vogal!</p>
+          </div>
+          <button id="metronomeBtn" onclick="toggleMetronome()" class="px-4 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs shadow transition flex items-center gap-1.5 flex-shrink-0">
+            <span id="metroIcon">⏱️</span>
+            <span id="metroLabel">Iniciar Metrônomo (100 BPM)</span>
+          </button>
+        </div>
+
+        <!-- 4 Visual Beat Circles -->
+        <div class="grid grid-cols-4 gap-2 sm:gap-4 text-center">
+          <div id="beatBox-0" class="p-3 sm:p-4 rounded-2xl bg-white border-2 border-stone-200 font-display font-black text-lg sm:text-2xl text-stone-800 transition-all">
+            BAT
+            <span class="block text-[10px] font-mono font-bold text-stone-400">/æ/</span>
+          </div>
+          <div id="beatBox-1" class="p-3 sm:p-4 rounded-2xl bg-white border-2 border-stone-200 font-display font-black text-lg sm:text-2xl text-stone-800 transition-all">
+            BET
+            <span class="block text-[10px] font-mono font-bold text-stone-400">/ɛ/</span>
+          </div>
+          <div id="beatBox-2" class="p-3 sm:p-4 rounded-2xl bg-white border-2 border-stone-200 font-display font-black text-lg sm:text-2xl text-stone-800 transition-all">
+            BIT
+            <span class="block text-[10px] font-mono font-bold text-stone-400">/ɪ/</span>
+          </div>
+          <div id="beatBox-3" class="p-3 sm:p-4 rounded-2xl bg-white border-2 border-stone-200 font-display font-black text-lg sm:text-2xl text-stone-800 transition-all">
+            BUT
+            <span class="block text-[10px] font-mono font-bold text-stone-400">/ʌ/</span>
+          </div>
+        </div>
+
+        <!-- Two Syllables Progression -->
+        <div class="pt-3 border-t border-amber-200/80 flex flex-wrap items-center justify-between gap-3">
+          <p class="font-display font-bold text-sm sm:text-base text-amber-950">
+            Then: BAT-ter → BET-ter → BIT-ter → BUT-ter
+          </p>
+          <button onclick="speakSequence(['batter', 'better', 'bitter', 'butter'])" class="px-3.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-amber-950 font-bold text-xs transition shadow-sm">
+            <span>🔊 Ouvir 2-Sílabas</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Card Action Navigation Buttons -->
+      <div class="flex items-center justify-between pt-2 border-t border-stone-100">
+        <button onclick="prevCard()" class="px-5 py-2.5 rounded-2xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-display font-bold text-xs sm:text-sm transition flex items-center gap-1.5">
+          <span>⬅️ Anterior</span>
+        </button>
+        <button onclick="nextCard()" class="px-6 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-display font-bold text-xs sm:text-sm shadow-md transition flex items-center gap-1.5">
+          <span>Próximo: Exercício 3 ➡️</span>
+        </button>
+      </div>
+
+    </section>
+
+    <!-- =========================================================================
+         CARD 4: EXERCISE 3 — DON'T READ, REPEAT (CALL & RESPONSE + RANDOMIZER)
+         ========================================================================= -->
+    <section id="card-3" class="card-slide hidden bg-white rounded-3xl p-6 sm:p-9 border-2 border-amber-200/90 shadow-xl space-y-6 animate-card-enter">
+
+      <!-- Card Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-4">
+        <div>
+          <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-bold uppercase tracking-wider border border-emerald-200">
+            Card 4 de 7 • Drill 3
+          </span>
+          <h2 class="text-2xl sm:text-3xl font-display font-extrabold text-stone-900 mt-1">
+            🔄 Exercise 3 — Don't read, repeat
+          </h2>
+          <p class="text-sm text-stone-600">
+            Have one student/teacher read the first word and the class immediately repeats it.
+          </p>
+        </div>
+      </div>
+
+      <!-- Call & Response 4-Step Cards -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200 space-y-1">
+          <div class="flex justify-between items-center text-xs font-bold text-stone-500">
+            <span>Step 1</span>
+            <button onclick="speakWord('butter')">🔊</button>
+          </div>
+          <p class="text-xs font-semibold text-stone-500">Teacher: <strong class="text-stone-900">butter</strong></p>
+          <p class="text-xs font-bold text-emerald-700">Class: <span>butter</span></p>
+        </div>
+
+        <div class="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200 space-y-1">
+          <div class="flex justify-between items-center text-xs font-bold text-stone-500">
+            <span>Step 2</span>
+            <button onclick="speakWord('better')">🔊</button>
+          </div>
+          <p class="text-xs font-semibold text-stone-500">Teacher: <strong class="text-stone-900">better</strong></p>
+          <p class="text-xs font-bold text-emerald-700">Class: <span>better</span></p>
+        </div>
+
+        <div class="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200 space-y-1">
+          <div class="flex justify-between items-center text-xs font-bold text-stone-500">
+            <span>Step 3</span>
+            <button onclick="speakWord('bitter')">🔊</button>
+          </div>
+          <p class="text-xs font-semibold text-stone-500">Teacher: <strong class="text-stone-900">bitter</strong></p>
+          <p class="text-xs font-bold text-emerald-700">Class: <span>bitter</span></p>
+        </div>
+
+        <div class="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200 space-y-1">
+          <div class="flex justify-between items-center text-xs font-bold text-stone-500">
+            <span>Step 4</span>
+            <button onclick="speakWord('batter')">🔊</button>
+          </div>
+          <p class="text-xs font-semibold text-stone-500">Teacher: <strong class="text-stone-900">batter</strong></p>
+          <p class="text-xs font-bold text-emerald-700">Class: <span>batter</span></p>
+        </div>
+      </div>
+
+      <!-- The Unpredictable Chain Randomizer -->
+      <div class="p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-stone-900 to-stone-800 text-white space-y-4 shadow-lg">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-950 px-2 py-0.5 rounded">Brain Challenge</span>
+            <h4 class="text-lg sm:text-xl font-display font-bold mt-1">Make it Unpredictable! 🎲</h4>
+            <p class="text-xs text-stone-300">
+              Força os alunos a realmente ouvirem a vogal em vez de apenas memorizarem uma ordem fixa.
+            </p>
+          </div>
+          <button onclick="generateRandomChain()" class="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs shadow transition flex items-center gap-1.5 flex-shrink-0">
+            <span>🎲 Gerar Nova Ordem</span>
+          </button>
+        </div>
+
+        <!-- Chain Box -->
+        <div class="p-4 rounded-xl bg-white/10 border border-white/20 backdrop-blur-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="flex flex-wrap items-center gap-2 text-base sm:text-xl font-display font-extrabold text-amber-200" id="unpredictableChainBox">
+            <span>butter</span> <span>→</span>
+            <span>bitter</span> <span>→</span>
+            <span>better</span> <span>→</span>
+            <span>batter</span> <span>→</span>
+            <span>bitter</span> <span>→</span>
+            <span>butter</span> <span>→</span>
+            <span>batter</span> <span>→</span>
+            <span>better</span>
+          </div>
+          <button onclick="playCurrentChain()" class="px-3.5 py-1.5 rounded-xl bg-white text-stone-900 font-bold text-xs hover:bg-amber-100 transition flex-shrink-0 flex items-center gap-1">
+            <span>🔊 Tocar Cadeia</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Card Action Navigation Buttons -->
+      <div class="flex items-center justify-between pt-2 border-t border-stone-100">
+        <button onclick="prevCard()" class="px-5 py-2.5 rounded-2xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-display font-bold text-xs sm:text-sm transition flex items-center gap-1.5">
+          <span>⬅️ Anterior</span>
+        </button>
+        <button onclick="nextCard()" class="px-6 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-display font-bold text-xs sm:text-sm shadow-md transition flex items-center gap-1.5">
+          <span>Próximo: Exercício 4 ➡️</span>
+        </button>
+      </div>
+
+    </section>
+
+    <!-- =========================================================================
+         CARD 5: EXERCISE 4 — WHICH WORD DID YOU HEAR? (LISTENING GAME)
+         ========================================================================= -->
+    <section id="card-4" class="card-slide hidden bg-white rounded-3xl p-6 sm:p-9 border-2 border-amber-200/90 shadow-xl space-y-6 animate-card-enter">
+
+      <!-- Card Header with Score -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-4">
+        <div>
+          <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-sky-100 text-sky-900 text-xs font-bold uppercase tracking-wider border border-sky-200">
+            Card 5 de 7 • Game
+          </span>
+          <h2 class="text-2xl sm:text-3xl font-display font-extrabold text-stone-900 mt-1">
+            🧠 Exercise 4 — Which word did you hear?
+          </h2>
+          <p class="text-sm text-stone-600">
+            Say one word. Students choose what they heard.
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2 bg-stone-100 px-3.5 py-1.5 rounded-2xl border border-stone-200">
+          <span class="text-xs font-bold text-stone-500">Pontuação:</span>
+          <span id="quizScoreText" class="font-display font-black text-amber-600 text-lg">0 / 0</span>
+        </div>
+      </div>
+
+      <!-- Quiz Stage Area -->
+      <div class="bg-amber-50/70 border-2 border-dashed border-amber-300 rounded-3xl p-6 sm:p-8 text-center space-y-5">
+        <div class="space-y-1">
+          <p class="text-xs font-bold uppercase tracking-wider text-amber-800" id="quizPairIndicator">
+            Round: Pair 1 of 6
+          </p>
+          <h4 class="text-lg sm:text-2xl font-display font-extrabold text-stone-800">
+            Ouça com atenção e selecione qual palavra você escutou:
+          </h4>
+        </div>
+
+        <!-- Mystery Word Audio Button -->
+        <button id="quizAudioTrigger" onclick="playQuizMysteryWord()" class="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-display font-bold text-base shadow-lg transition transform animate-pulse-glow">
+          <span class="text-xl">🔊</span>
+          <span id="quizAudioBtnLabel">Tocar Palavra Secreta</span>
+        </button>
+
+        <!-- The 2 Choice Buttons -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md mx-auto pt-2">
+          <button id="quizOpt1Btn" onclick="handleQuizAnswer(0)" class="py-3.5 px-5 rounded-2xl bg-white border-2 border-stone-300 hover:border-amber-500 hover:bg-amber-50 font-display font-bold text-xl text-stone-800 shadow-sm transition">
+            butter
+          </button>
+          <button id="quizOpt2Btn" onclick="handleQuizAnswer(1)" class="py-3.5 px-5 rounded-2xl bg-white border-2 border-stone-300 hover:border-amber-500 hover:bg-amber-50 font-display font-bold text-xl text-stone-800 shadow-sm transition">
+            better
+          </button>
+        </div>
+
+        <!-- Feedback Text -->
+        <div id="quizFeedbackBox" class="min-h-[24px] text-xs sm:text-sm font-bold text-stone-600">
+          Pressione o botão acima para ouvir o áudio antes de responder!
+        </div>
+      </div>
+
+      <!-- Quick List of Pairs to Practice -->
+      <div class="flex flex-wrap gap-2 text-[11px] font-bold text-stone-600">
+        <span class="px-2.5 py-1 bg-stone-100 rounded-lg">1. butter / better</span>
+        <span class="px-2.5 py-1 bg-stone-100 rounded-lg">2. bitter / batter</span>
+        <span class="px-2.5 py-1 bg-stone-100 rounded-lg">3. better / bitter</span>
+        <span class="px-2.5 py-1 bg-stone-100 rounded-lg">4. butter / batter</span>
+        <span class="px-2.5 py-1 bg-stone-100 rounded-lg">5. batter / better</span>
+        <span class="px-2.5 py-1 bg-stone-100 rounded-lg">6. bitter / butter</span>
+      </div>
+
+      <!-- Card Action Navigation Buttons -->
+      <div class="flex items-center justify-between pt-2 border-t border-stone-100">
+        <button onclick="prevCard()" class="px-5 py-2.5 rounded-2xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-display font-bold text-xs sm:text-sm transition flex items-center gap-1.5">
+          <span>⬅️ Anterior</span>
+        </button>
+        <button onclick="nextCard()" class="px-6 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-display font-bold text-xs sm:text-sm shadow-md transition flex items-center gap-1.5">
+          <span>Próximo: Exercício 5 ➡️</span>
+        </button>
+      </div>
+
+    </section>
+
+    <!-- =========================================================================
+         CARD 6: EXERCISE 5 — SPEED CHALLENGE (LEVELS 1-5 + BOSS CHALLENGE)
+         ========================================================================= -->
+    <section id="card-5" class="card-slide hidden bg-white rounded-3xl p-6 sm:p-9 border-2 border-amber-200/90 shadow-xl space-y-6 animate-card-enter">
+
+      <!-- Card Header with Stopwatch -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-4">
+        <div>
+          <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-bold uppercase tracking-wider border border-amber-300">
+            Card 6 de 7 • Speed Drill
+          </span>
+          <h2 class="text-2xl sm:text-3xl font-display font-extrabold text-stone-900 mt-1">
+            ⚡ Exercise 5 — Speed challenge
+          </h2>
+          <p class="text-sm text-stone-600">
+            Suba de nível um a um. Cronometre a velocidade dos alunos!
+          </p>
+        </div>
+
+        <!-- Integrated Stopwatch -->
+        <div class="flex items-center gap-2 bg-stone-900 text-white px-3.5 py-2 rounded-2xl shadow">
+          <span class="text-[11px] font-mono font-bold text-amber-400">⏱️</span>
+          <span id="stopwatchDisplay" class="font-mono text-base font-bold tracking-wider">00:00.0</span>
+          <button onclick="toggleStopwatch()" id="stopwatchToggleBtn" class="px-2 py-0.5 rounded bg-amber-500 hover:bg-amber-600 text-[11px] font-bold text-stone-950 transition">
+            Start
+          </button>
+          <button onclick="resetStopwatch()" class="px-2 py-0.5 rounded bg-stone-700 hover:bg-stone-600 text-[11px] font-bold text-stone-300 transition">
+            Reset
+          </button>
+        </div>
+      </div>
+
+      <!-- Golden Rule Callout -->
+      <div class="p-3.5 rounded-2xl bg-amber-100/70 border-l-4 border-amber-500 text-stone-800 text-xs sm:text-sm font-semibold flex items-center gap-2">
+        <span>⚠️</span>
+        <p><strong>The rule:</strong> If you make a mistake, slow down rather than starting over at full speed!</p>
+      </div>
+
+      <!-- Levels 1 to 5 List -->
+      <div class="space-y-2.5">
+
+        <!-- Level 1 -->
+        <div class="p-3 sm:p-3.5 rounded-2xl border border-stone-200 bg-stone-50/50 hover:border-amber-300 transition flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <span class="px-2.5 py-0.5 rounded-lg bg-stone-200 text-stone-800 font-bold text-xs">Level 1</span>
+            <span class="font-display font-bold text-base sm:text-lg text-stone-800">Better butter.</span>
+          </div>
+          <button onclick="speakWord('Better butter.')" class="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-xs transition">🔊</button>
+        </div>
+
+        <!-- Level 2 -->
+        <div class="p-3 sm:p-3.5 rounded-2xl border border-stone-200 bg-stone-50/50 hover:border-amber-300 transition flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <span class="px-2.5 py-0.5 rounded-lg bg-stone-200 text-stone-800 font-bold text-xs">Level 2</span>
+            <span class="font-display font-bold text-base sm:text-lg text-stone-800">Bitter butter.</span>
+          </div>
+          <button onclick="speakWord('Bitter butter.')" class="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-xs transition">🔊</button>
+        </div>
+
+        <!-- Level 3 -->
+        <div class="p-3 sm:p-3.5 rounded-2xl border border-stone-200 bg-stone-50/50 hover:border-amber-300 transition flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <span class="px-2.5 py-0.5 rounded-lg bg-stone-200 text-stone-800 font-bold text-xs">Level 3</span>
+            <span class="font-display font-bold text-base sm:text-lg text-stone-800">Better butter, bitter batter.</span>
+          </div>
+          <button onclick="speakWord('Better butter, bitter batter.')" class="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-xs transition">🔊</button>
+        </div>
+
+        <!-- Level 4 -->
+        <div class="p-3 sm:p-3.5 rounded-2xl border border-stone-200 bg-stone-50/50 hover:border-amber-300 transition flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <span class="px-2.5 py-0.5 rounded-lg bg-stone-200 text-stone-800 font-bold text-xs">Level 4</span>
+            <span class="font-display font-bold text-base sm:text-lg text-stone-800">Better butter in bitter batter.</span>
+          </div>
+          <button onclick="speakWord('Better butter in bitter batter.')" class="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-xs transition">🔊</button>
+        </div>
+
+        <!-- Level 5 -->
+        <div class="p-3 sm:p-3.5 rounded-2xl border border-stone-200 bg-stone-50/50 hover:border-amber-300 transition flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <span class="px-2.5 py-0.5 rounded-lg bg-amber-500 text-white font-bold text-xs">Level 5</span>
+            <span class="font-display font-bold text-base sm:text-lg text-stone-900">She bought better butter for her bitter batter.</span>
+          </div>
+          <button onclick="speakWord('She bought better butter for her bitter batter.')" class="px-2.5 py-1 rounded-lg bg-amber-200 hover:bg-amber-300 text-amber-950 font-bold text-xs transition">🔊</button>
+        </div>
+
+        <!-- Final Boss Challenge -->
+        <div class="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-white shadow-lg space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="px-2.5 py-0.5 rounded-full bg-white/20 text-[11px] font-black uppercase tracking-wider">
+              🔥 Final challenge
+            </span>
+            <button onclick="celebrateSuccess()" class="text-xs font-bold bg-white/20 hover:bg-white/30 px-2.5 py-1 rounded-lg transition">
+              🎉 Comemorar!
+            </button>
+          </div>
+          <p class="font-display font-extrabold text-base sm:text-xl">
+            “Betty Botter bought some better butter and put it in her bitter batter.”
+          </p>
+          <div class="flex justify-end">
+            <button onclick="speakWord('Betty Botter bought some better butter and put it in her bitter batter.')" class="px-3 py-1 rounded-xl bg-white text-stone-900 hover:bg-amber-100 font-bold text-xs transition">
+              🔊 Ouvir Desafio Final
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Card Action Navigation Buttons -->
+      <div class="flex items-center justify-between pt-2 border-t border-stone-100">
+        <button onclick="prevCard()" class="px-5 py-2.5 rounded-2xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-display font-bold text-xs sm:text-sm transition flex items-center gap-1.5">
+          <span>⬅️ Anterior</span>
+        </button>
+        <button onclick="nextCard()" class="px-6 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-display font-bold text-xs sm:text-sm shadow-md transition flex items-center gap-1.5">
+          <span>Próximo: História ➡️</span>
+        </button>
+      </div>
+
+    </section>
+
+    <!-- =========================================================================
+         CARD 7: WHAT DOES IT MEAN? (STORY & PEDAGOGICAL WRAP-UP)
+         ========================================================================= -->
+    <section id="card-6" class="card-slide hidden bg-white rounded-3xl p-6 sm:p-9 border-2 border-amber-200/90 shadow-xl space-y-6 animate-card-enter">
+
+      <!-- Card Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-4">
+        <div>
+          <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-purple-100 text-purple-900 text-xs font-bold uppercase tracking-wider border border-purple-200">
+            Card 7 de 7 • Comprehension
+          </span>
+          <h2 class="text-2xl sm:text-3xl font-display font-extrabold text-stone-900 mt-1">
+            📖 What does it mean?
+          </h2>
+          <p class="text-sm text-stone-600">
+            The story is actually quite simple. Entenda para dar vida à entonação!
+          </p>
+        </div>
+      </div>
+
+      <!-- 4 Story Panels -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+
+        <div class="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 space-y-1.5">
+          <div class="text-2xl">🛒</div>
+          <h4 class="font-display font-bold text-stone-900 text-sm">1. The Shopping</h4>
+          <p class="text-xs text-stone-600 leading-relaxed">
+            Betty Botter bought some butter, but when she tasted it, she said: “This butter's bitter.”
+          </p>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-rose-50/70 border border-rose-200 space-y-1.5">
+          <div class="text-2xl">😖</div>
+          <h4 class="font-display font-bold text-stone-900 text-sm">2. Bitter Taste</h4>
+          <p class="text-xs text-stone-600 leading-relaxed">
+            <strong class="text-rose-800">Bitter</strong> means having a sharp, unpleasant taste that ruins food.
+          </p>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-sky-50/70 border border-sky-200 space-y-1.5">
+          <div class="text-2xl">🥣</div>
+          <h4 class="font-display font-bold text-stone-900 text-sm">3. The Batter</h4>
+          <p class="text-xs text-stone-600 leading-relaxed">
+            <strong class="text-sky-800">Batter</strong> is the mixture used to make cakes, pancakes, or muffins.
+          </p>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-1.5">
+          <div class="text-2xl">🥞</div>
+          <h4 class="font-display font-bold text-stone-900 text-sm">4. Better Butter</h4>
+          <p class="text-xs text-stone-600 leading-relaxed">
+            So she bought <strong class="text-emerald-800">better butter</strong> and made her bitter batter better!
+          </p>
+        </div>
+
+      </div>
+
+      <!-- In Simple English Card -->
+      <div class="p-5 rounded-2xl bg-amber-100/70 border border-amber-300 space-y-2">
+        <h4 class="font-display font-bold text-stone-900 text-sm flex items-center gap-1.5">
+          <span>✨ So, in simple English:</span>
+        </h4>
+        <p class="text-xs sm:text-sm text-stone-700 leading-relaxed">
+          Betty bought bad-tasting butter. She didn't want to put it in her cake/pancake mixture, so she bought <strong>better butter</strong> instead.
+        </p>
+        <p class="text-xs sm:text-sm text-stone-700 leading-relaxed font-semibold">
+          And the whole joke is that <em>butter</em>, <em>better</em>, <em>bitter</em>, and <em>batter</em> sound extremely similar, making the sentence increasingly difficult to pronounce! 😄
+        </p>
+      </div>
+
+      <!-- Card Action Navigation Buttons -->
+      <div class="flex items-center justify-between pt-2 border-t border-stone-100">
+        <button onclick="prevCard()" class="px-5 py-2.5 rounded-2xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-display font-bold text-xs sm:text-sm transition flex items-center gap-1.5">
+          <span>⬅️ Anterior</span>
+        </button>
+        <button onclick="goToCard(0); celebrateSuccess();" class="px-6 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-display font-bold text-xs sm:text-sm shadow-md transition flex items-center gap-2">
+          <span>🎉 Parabéns! Rever Aula 🔄</span>
+        </button>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- BOTTOM FLOATING CONTROLS & KEYBOARD HINTS -->
+  <footer class="bg-white/80 backdrop-blur-sm border-t border-amber-200/80 py-3 text-center text-xs text-stone-500">
+    <div class="max-w-4xl mx-auto px-4 flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <span class="font-bold text-amber-900">💡 Dica de navegação:</span>
+        <span class="hidden sm:inline">Use as teclas <kbd class="px-1.5 py-0.5 rounded bg-stone-200 border border-stone-300 font-mono text-[10px]">◀</kbd> e <kbd class="px-1.5 py-0.5 rounded bg-stone-200 border border-stone-300 font-mono text-[10px]">▶</kbd> do teclado para passar os cards!</span>
+        <span class="sm:hidden">Deslize para navegar entre os exercícios</span>
+      </div>
+      <div class="text-[11px] font-semibold text-amber-800">
+        Card <span id="currentCardIndicator">1</span> de 7
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    /* =========================================================================
+       CARD SLIDER NAVIGATION CONTROLLER
+       ========================================================================= */
+    const TOTAL_CARDS = 7;
+    let currentCardIndex = 0;
+
+    function updateCardVisibility() {
+      // Hide all cards and show only the active one
+      for (let i = 0; i < TOTAL_CARDS; i++) {
+        const cardEl = document.getElementById(`card-${i}`);
+        if (cardEl) {
+          if (i === currentCardIndex) {
+            cardEl.classList.remove('hidden');
+          } else {
+            cardEl.classList.add('hidden');
+          }
+        }
+      }
+
+      // Update Top Nav Pills
+      document.querySelectorAll('.slide-nav-pill').forEach((pill, idx) => {
+        if (idx === currentCardIndex) {
+          pill.className = "slide-nav-pill px-2.5 py-1 rounded-lg transition whitespace-nowrap flex items-center gap-1 bg-amber-500 text-white shadow-sm";
+        } else {
+          pill.className = "slide-nav-pill px-2.5 py-1 rounded-lg transition whitespace-nowrap flex items-center gap-1 bg-stone-100 text-stone-600 hover:bg-amber-100";
+        }
+      });
+
+      // Update Progress Bar Fill
+      const percentage = ((currentCardIndex + 1) / TOTAL_CARDS) * 100;
+      document.getElementById('progressBarFill').style.width = `${percentage}%`;
+
+      // Update Bottom Indicator
+      document.getElementById('currentCardIndicator').textContent = currentCardIndex + 1;
+
+      // Stop speech when changing cards
+      stopSpeech();
+      if (isMetronomeRunning) stopMetronome();
+
+      // Scroll smoothly to top of main
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function nextCard() {
+      if (currentCardIndex < TOTAL_CARDS - 1) {
+        currentCardIndex++;
+        updateCardVisibility();
+        playClickSound(750, 0.04);
+      }
+    }
+
+    function prevCard() {
+      if (currentCardIndex > 0) {
+        currentCardIndex--;
+        updateCardVisibility();
+        playClickSound(600, 0.04);
+      }
+    }
+
+    function goToCard(index) {
+      if (index >= 0 && index < TOTAL_CARDS) {
+        currentCardIndex = index;
+        updateCardVisibility();
+        playClickSound(700, 0.04);
+      }
+    }
+
+    // Keyboard Arrow Keys Support
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'PageDown') {
+        nextCard();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        prevCard();
+      }
+    });
+
+    // Touch Swipe Support for Mobile
+    let touchStartX = 0;
+    let touchEndX = 0;
+    window.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+
+    window.addEventListener('touchend', (e) => {
+      touchEndX = e.changedTouches[0].screenX;
+      handleSwipe();
+    }, { passive: true });
+
+    function handleSwipe() {
+      const threshold = 60;
+      if (touchEndX < touchStartX - threshold) {
+        nextCard(); // Swiped left -> Next
+      }
+      if (touchEndX > touchStartX + threshold) {
+        prevCard(); // Swiped right -> Prev
+      }
+    }
+
+    /* =========================================================================
+       AUDIO ENGINE: Web Audio API (Synthesizer for clicks & metronome)
+       ========================================================================= */
+    let audioCtx = null;
+
+    function getAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function playClickSound(freq = 800, duration = 0.04) {
+      try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function playSuccessChime() {
+      try {
+        const ctx = getAudioContext();
+        const now = ctx.currentTime;
+        [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + (i * 0.08));
+          gain.gain.setValueAtTime(0.12, now + (i * 0.08));
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + (i * 0.08) + 0.3);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + (i * 0.08));
+          osc.stop(now + (i * 0.08) + 0.35);
+        });
+      } catch (e) {}
+    }
+
+    /* =========================================================================
+       SPEECH SYNTHESIS ENGINE (Web Speech API)
+       ========================================================================= */
+    const synth = window.speechSynthesis;
+    let isKaraokePlaying = false;
+    let karaokeTimeout = null;
+
+    const poemLines = [
+      "Betty Botter bought some butter but she said this butter's bitter",
+      "If I put it in my batter it would make my batter bitter",
+      "So she bought a bit of better butter, put it in her bitter batter",
+      "Made her bitter batter better, so 'tis better",
+      "Betty Botter bought a bit of better butter"
+    ];
+
+    function pickVoice() {
+      if (!synth) return null;
+      const voices = synth.getVoices();
+      const accent = document.getElementById('voiceAccentSelect').value;
+      let match = null;
+      if (accent === 'UK') {
+        match = voices.find(v => v.lang.includes('en-GB') || v.name.includes('British') || v.name.includes('UK'));
+      } else {
+        match = voices.find(v => v.lang.includes('en-US') || v.name.includes('US') || v.name.includes('United States'));
+      }
+      return match || voices.find(v => v.lang.startsWith('en')) || voices[0];
+    }
+
+    function stopSpeech() {
+      if (synth) synth.cancel();
+      isKaraokePlaying = false;
+      if (karaokeTimeout) clearTimeout(karaokeTimeout);
+      updateKaraokeButton(false);
+      clearKaraokeHighlights();
+    }
+
+    function speakWord(text, onEndCallback = null) {
+      if (!synth) {
+        showToast("Síntese de voz não suportada neste navegador.", "warning");
+        return;
+      }
+      synth.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      const voice = pickVoice();
+      if (voice) utterance.voice = voice;
+
+      const speed = parseFloat(document.getElementById('voiceSpeedSelect').value) || 1.0;
+      utterance.rate = speed;
+      utterance.pitch = 1.05;
+
+      if (onEndCallback) {
+        utterance.onend = onEndCallback;
+        utterance.onerror = onEndCallback;
+      }
+
+      synth.speak(utterance);
+    }
+
+    function speakSequence(wordsArray, currentIndex = 0) {
+      if (currentIndex >= wordsArray.length) return;
+      speakWord(wordsArray[currentIndex], () => {
+        setTimeout(() => {
+          speakSequence(wordsArray, currentIndex + 1);
+        }, 320);
+      });
+    }
+
+    /* =========================================================================
+       KARAOKE ENGINE (Card 1)
+       ========================================================================= */
+    function clearKaraokeHighlights() {
+      document.querySelectorAll('.poem-line').forEach(el => el.classList.remove('karaoke-active'));
+    }
+
+    function highlightPoemLine(index) {
+      clearKaraokeHighlights();
+      const lineEl = document.querySelector(`.poem-line[data-line-index="${index}"]`);
+      if (lineEl) lineEl.classList.add('karaoke-active');
+    }
+
+    function speakPoemLine(index) {
+      highlightPoemLine(index);
+      speakWord(poemLines[index], () => {
+        setTimeout(clearKaraokeHighlights, 400);
+      });
+    }
+
+    function toggleKaraoke() {
+      if (isKaraokePlaying) {
+        stopSpeech();
+        return;
+      }
+      isKaraokePlaying = true;
+      updateKaraokeButton(true);
+      playKaraokeStep(0);
+    }
+
+    function playKaraokeStep(stepIndex) {
+      if (!isKaraokePlaying) return;
+      if (stepIndex >= poemLines.length) {
+        clearKaraokeHighlights();
+        isKaraokePlaying = false;
+        updateKaraokeButton(false);
+        celebrateSuccess();
+        showToast("🎉 Fantástico! Trava-línguas completo com sucesso!", "success");
+        return;
+      }
+
+      highlightPoemLine(stepIndex);
+      speakWord(poemLines[stepIndex], () => {
+        karaokeTimeout = setTimeout(() => {
+          playKaraokeStep(stepIndex + 1);
+        }, 400);
+      });
+    }
+
+    function updateKaraokeButton(isPlaying) {
+      const btn = document.getElementById('karaokePlayBtn');
+      const icon = document.getElementById('karaokeBtnIcon');
+      const text = document.getElementById('karaokeBtnText');
+      if (isPlaying) {
+        btn.classList.replace('bg-amber-500', 'bg-rose-500');
+        btn.classList.replace('hover:bg-amber-600', 'hover:bg-rose-600');
+        icon.textContent = '⏸️';
+        text.textContent = 'Pausar Karaokê';
+      } else {
+        btn.classList.replace('bg-rose-500', 'bg-amber-500');
+        btn.classList.replace('hover:bg-rose-600', 'hover:bg-amber-600');
+        icon.textContent = '▶️';
+        text.textContent = 'Play Karaokê';
+      }
+    }
+
+    /* =========================================================================
+       EXERCISE 1: 3x REPETITION TRACKER (Card 2)
+       ========================================================================= */
+    const groupChecks = { A: [false, false, false], B: [false, false, false], C: [false, false, false], D: [false, false, false] };
+
+    function toggleGroupCheck(group, num) {
+      const idx = num - 1;
+      groupChecks[group][idx] = !groupChecks[group][idx];
+      const container = document.getElementById(`group${group}-checks`);
+      const buttons = container.querySelectorAll('button');
+
+      buttons[idx].classList.toggle('bg-emerald-500', groupChecks[group][idx]);
+      buttons[idx].classList.toggle('text-white', groupChecks[group][idx]);
+      buttons[idx].classList.toggle('border-emerald-600', groupChecks[group][idx]);
+
+      playClickSound(550 + num * 100, 0.05);
+
+      if (groupChecks[group].every(v => v === true)) {
+        celebrateSuccess();
+        showToast(`🎉 Sensacional! 3x completadas no Grupo ${group}!`, "success");
+      }
+    }
+
+    /* =========================================================================
+       EXERCISE 2: METRONOME ENGINE (Card 3)
+       ========================================================================= */
+    let isMetronomeRunning = false;
+    let metronomeTimer = null;
+    let currentBeat = 0;
+
+    function toggleMetronome() {
+      if (isMetronomeRunning) {
+        stopMetronome();
+      } else {
+        startMetronome();
+      }
+    }
+
+    function startMetronome() {
+      isMetronomeRunning = true;
+      document.getElementById('metroIcon').textContent = '⏹️';
+      document.getElementById('metroLabel').textContent = 'Parar Metrônomo';
+      currentBeat = 0;
+      runMetronomeTick();
+    }
+
+    function stopMetronome() {
+      isMetronomeRunning = false;
+      if (metronomeTimer) clearTimeout(metronomeTimer);
+      document.getElementById('metroIcon').textContent = '⏱️';
+      document.getElementById('metroLabel').textContent = 'Iniciar Metrônomo (100 BPM)';
+      [0, 1, 2, 3].forEach(i => {
+        const box = document.getElementById(`beatBox-${i}`);
+        if (box) box.classList.remove('beat-active');
+      });
+    }
+
+    function runMetronomeTick() {
+      if (!isMetronomeRunning) return;
+
+      [0, 1, 2, 3].forEach(i => {
+        const box = document.getElementById(`beatBox-${i}`);
+        if (box) box.classList.toggle('beat-active', i === currentBeat);
+      });
+
+      const freq = (currentBeat === 0) ? 950 : 650;
+      playClickSound(freq, 0.04);
+
+      currentBeat = (currentBeat + 1) % 4;
+      metronomeTimer = setTimeout(runMetronomeTick, 600); // 100 BPM
+    }
+
+    /* =========================================================================
+       EXERCISE 3: UNPREDICTABLE CHAIN (Card 4)
+       ========================================================================= */
+    let currentChainWords = ['butter', 'bitter', 'better', 'batter', 'bitter', 'butter', 'batter', 'better'];
+    const possibleWords = ['butter', 'better', 'bitter', 'batter'];
+
+    function generateRandomChain() {
+      const length = 8;
+      const newChain = [];
+      let last = '';
+      for (let i = 0; i < length; i++) {
+        let candidate = possibleWords[Math.floor(Math.random() * possibleWords.length)];
+        while (candidate === last) {
+          candidate = possibleWords[Math.floor(Math.random() * possibleWords.length)];
+        }
+        newChain.push(candidate);
+        last = candidate;
+      }
+      currentChainWords = newChain;
+
+      const container = document.getElementById('unpredictableChainBox');
+      container.innerHTML = newChain.map((w, idx) => `<span>${w}</span>${idx < newChain.length - 1 ? ' <span>→</span>' : ''}`).join(' ');
+
+      playClickSound(650, 0.05);
+      showToast("🎲 Nova sequência gerada! Ouça com atenção!", "info");
+    }
+
+    function playCurrentChain() {
+      speakSequence(currentChainWords);
+    }
+
+    /* =========================================================================
+       EXERCISE 4: LISTENING QUIZ (Card 5)
+       ========================================================================= */
+    const quizPairs = [
+      { word1: 'butter', word2: 'better' },
+      { word1: 'bitter', word2: 'batter' },
+      { word1: 'better', word2: 'bitter' },
+      { word1: 'butter', word2: 'batter' },
+      { word1: 'batter', word2: 'better' },
+      { word1: 'bitter', word2: 'butter' }
+    ];
+
+    let currentQuizIndex = 0;
+    let mysteryAnswer = '';
+    let quizScore = 0;
+    let quizTotal = 0;
+    let hasHeardAudio = false;
+
+    function initQuizStage() {
+      const pair = quizPairs[currentQuizIndex];
+      mysteryAnswer = Math.random() < 0.5 ? pair.word1 : pair.word2;
+      hasHeardAudio = false;
+
+      document.getElementById('quizPairIndicator').textContent = `Round: Par ${currentQuizIndex + 1} de ${quizPairs.length}`;
+      document.getElementById('quizOpt1Btn').textContent = pair.word1;
+      document.getElementById('quizOpt2Btn').textContent = pair.word2;
+
+      const feedback = document.getElementById('quizFeedbackBox');
+      feedback.textContent = "Toque no botão acima para escutar a palavra secreta!";
+      feedback.className = "min-h-[24px] text-xs sm:text-sm font-bold text-stone-500 transition";
+
+      ['quizOpt1Btn', 'quizOpt2Btn'].forEach(id => {
+        const btn = document.getElementById(id);
+        btn.classList.remove('bg-emerald-100', 'border-emerald-500', 'bg-rose-100', 'border-rose-500');
+        btn.disabled = false;
+      });
+    }
+
+    function playQuizMysteryWord() {
+      hasHeardAudio = true;
+      speakWord(mysteryAnswer);
+      const feedback = document.getElementById('quizFeedbackBox');
+      feedback.textContent = "Qual palavra foi dita?";
+      feedback.className = "min-h-[24px] text-xs sm:text-sm font-bold text-amber-700 transition";
+    }
+
+    function handleQuizAnswer(optionIndex) {
+      if (!hasHeardAudio) {
+        showToast("⚠️ Primeiro toque no botão para ouvir o áudio!", "warning");
+        return;
+      }
+
+      const pair = quizPairs[currentQuizIndex];
+      const chosenWord = optionIndex === 0 ? pair.word1 : pair.word2;
+      const isCorrect = chosenWord === mysteryAnswer;
+
+      quizTotal++;
+      if (isCorrect) quizScore++;
+      document.getElementById('quizScoreText').textContent = `${quizScore} / ${quizTotal}`;
+
+      const feedback = document.getElementById('quizFeedbackBox');
+      const optBtn = optionIndex === 0 ? document.getElementById('quizOpt1Btn') : document.getElementById('quizOpt2Btn');
+
+      if (isCorrect) {
+        optBtn.classList.add('bg-emerald-100', 'border-emerald-500');
+        feedback.textContent = `✅ Correto! Você ouviu "${mysteryAnswer}"!`;
+        feedback.className = "min-h-[24px] text-xs sm:text-sm font-bold text-emerald-600 transition";
+        playSuccessChime();
+      } else {
+        optBtn.classList.add('bg-rose-100', 'border-rose-500');
+        feedback.textContent = `❌ Quase! A palavra dita foi "${mysteryAnswer}".`;
+        feedback.className = "min-h-[24px] text-xs sm:text-sm font-bold text-rose-600 transition";
+        playClickSound(220, 0.15);
+      }
+
+      document.getElementById('quizOpt1Btn').disabled = true;
+      document.getElementById('quizOpt2Btn').disabled = true;
+
+      setTimeout(() => {
+        currentQuizIndex = (currentQuizIndex + 1) % quizPairs.length;
+        initQuizStage();
+      }, 1600);
+    }
+
+    /* =========================================================================
+       EXERCISE 5: STOPWATCH TIMER (Card 6)
+       ========================================================================= */
+    let stopwatchInterval = null;
+    let stopwatchStartTime = 0;
+    let stopwatchRunning = false;
+    let stopwatchElapsed = 0;
+
+    function toggleStopwatch() {
+      if (stopwatchRunning) {
+        clearInterval(stopwatchInterval);
+        stopwatchRunning = false;
+        document.getElementById('stopwatchToggleBtn').textContent = 'Resume';
+      } else {
+        stopwatchRunning = true;
+        document.getElementById('stopwatchToggleBtn').textContent = 'Pause';
+        stopwatchStartTime = Date.now() - stopwatchElapsed;
+        stopwatchInterval = setInterval(updateStopwatch, 50);
+      }
+    }
+
+    function resetStopwatch() {
+      clearInterval(stopwatchInterval);
+      stopwatchRunning = false;
+      stopwatchElapsed = 0;
+      document.getElementById('stopwatchDisplay').textContent = "00:00.0";
+      document.getElementById('stopwatchToggleBtn').textContent = 'Start';
+    }
+
+    function updateStopwatch() {
+      const elapsed = Date.now() - stopwatchStartTime;
+      stopwatchElapsed = elapsed;
+      const minutes = Math.floor(elapsed / 60000);
+      const seconds = Math.floor((elapsed % 60000) / 1000);
+      const tenths = Math.floor((elapsed % 1000) / 100);
+      document.getElementById('stopwatchDisplay').textContent =
+        `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${tenths}`;
+    }
+
+    /* =========================================================================
+       UTILITY: CONFETTI SYSTEM & TOASTS
+       ========================================================================= */
+    function celebrateSuccess() {
+      playSuccessChime();
+      const canvas = document.getElementById('confettiCanvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const particles = [];
+      const colors = ['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#facc15'];
+
+      for (let i = 0; i < 60; i++) {
+        particles.push({
+          x: canvas.width / 2,
+          y: canvas.height / 2,
+          vx: (Math.random() - 0.5) * 12,
+          vy: (Math.random() - 0.8) * 12,
+          size: Math.random() * 8 + 4,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          rotation: Math.random() * 360,
+          rotSpeed: (Math.random() - 0.5) * 10,
+          opacity: 1
+        });
+      }
+
+      let animationFrame;
+      function renderConfetti() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let active = 0;
+
+        particles.forEach(p => {
+          if (p.opacity > 0) {
+            active++;
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.3;
+            p.rotation += p.rotSpeed;
+            p.opacity -= 0.015;
+
+            ctx.save();
+            ctx.globalAlpha = Math.max(0, p.opacity);
+            ctx.translate(p.x, p.y);
+            ctx.rotate((p.rotation * Math.PI) / 180);
+            ctx.fillStyle = p.color;
+            ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.7);
+            ctx.restore();
+          }
+        });
+
+        if (active > 0) {
+          animationFrame = requestAnimationFrame(renderConfetti);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          cancelAnimationFrame(animationFrame);
+        }
+      }
+      renderConfetti();
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+
+      const colors = {
+        info: 'bg-stone-900 text-white border-stone-700',
+        success: 'bg-emerald-600 text-white border-emerald-500',
+        warning: 'bg-amber-500 text-amber-950 border-amber-400'
+      };
+
+      toast.className = `px-3.5 py-2 rounded-xl border shadow-xl text-xs font-bold transition-all transform duration-300 opacity-0 translate-y-2 pointer-events-auto flex items-center gap-2 ${colors[type] || colors.info}`;
+      toast.innerHTML = `<span>${type === 'success' ? '🎉' : type === 'warning' ? '⚠️' : 'ℹ️'}</span><span>${message}</span>`;
+
+      container.appendChild(toast);
+
+      requestAnimationFrame(() => toast.classList.remove('opacity-0', 'translate-y-2'));
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', '-translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 2800);
+    }
+
+    /* =========================================================================
+       TEACHER NOTES TOGGLE (PT-BR)
+       ========================================================================= */
+    let teacherNotesVisible = false;
+    function toggleTeacherNotes() {
+      teacherNotesVisible = !teacherNotesVisible;
+      document.querySelectorAll('.teacher-notes-panel').forEach(el => {
+        el.classList.toggle('hidden', !teacherNotesVisible);
+      });
+      document.getElementById('teacherNotesLabel').textContent =
+        teacherNotesVisible ? "Ocultar Dicas" : "Dicas em PT";
+    }
+
+    // Initialize application
+    window.addEventListener('DOMContentLoaded', () => {
+      initQuizStage();
+      updateCardVisibility();
+    });
+  </script>
+</body>
+</html>
