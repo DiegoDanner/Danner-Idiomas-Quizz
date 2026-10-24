@@ -226,6 +226,17 @@ const QUIZZES = [
     actionColor: 'text-teal-500',
     href: '/english-review',
   },
+  {
+    title: 'Simple Modal Verbs',
+    description: 'Modal Verbs Made Simple & Fun. Master can, could, should, and more!',
+    icon: BookOpen,
+    iconColor: 'text-indigo-500',
+    iconBg: 'bg-indigo-500/10',
+    actionText: 'Start Module',
+    actionColor: 'text-indigo-500',
+    href: '/simple-modal-verbs.html',
+    skipAuth: true,
+  },
 ];
 
 

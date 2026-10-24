@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modal Verbs Made Simple & Fun</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .font-mono-code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .modal-tag {
+      background-color: #fef08a;
+      color: #854d0e;
+      padding: 0.1rem 0.4rem;
+      border-radius: 0.35rem;
+      font-weight: 700;
+      display: inline-block;
+    }
+    .dark .modal-tag {
+      background-color: #854d0e;
+      color: #fef9c3;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 min-h-screen transition-colors duration-200">
+
+  <!-- Navigation / Header -->
+  <header class="border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 py-3.5 flex justify-between items-center gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-sky-500/25">
+          <i class="fa-solid fa-bolt text-lg"></i>
+        </div>
+        <div>
+          <h1 class="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+            Simple Modal Verbs
+            <span class="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">Easy & Interactive</span>
+          </h1>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Rules made simple with audio & interactive games</p>
+        </div>
+      </div>
+
+      <!-- Quick Nav & Dark toggle -->
+      <div class="flex items-center gap-2">
+        <a href="#sandbox" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-sky-50 text-sky-700 dark:bg-slate-800 dark:text-sky-300 hover:bg-sky-100 transition">
+          <i class="fa-solid fa-cubes text-xs"></i> Sentence Builder
+        </a>
+        <a href="#quiz" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-50 text-amber-700 dark:bg-slate-800 dark:text-amber-300 hover:bg-amber-100 transition">
+          <i class="fa-solid fa-gamepad text-xs"></i> Quick Quiz
+        </a>
+        <button onclick="toggleDarkMode()" class="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 transition" title="Toggle Mode">
+          <i id="themeIcon" class="fa-solid fa-moon"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-6 space-y-8">
+
+    <!-- 3 Golden Rules (Kid & Learner Friendly) -->
+    <section class="bg-gradient-to-r from-sky-600 via-indigo-600 to-purple-600 rounded-3xl p-5 sm:p-6 text-white shadow-lg relative overflow-hidden">
+      <div class="relative z-10">
+        <div class="flex items-center gap-2 text-sky-200 text-xs font-bold uppercase tracking-wider mb-1">
+          <i class="fa-solid fa-star"></i> Remember These 3 Easy Rules
+        </div>
+        <h2 class="text-xl sm:text-2xl font-extrabold tracking-tight mb-4">Modal verbs are super easy because they never change!</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15">
+            <div class="flex items-center gap-2 font-bold text-sm text-yellow-300 mb-1">
+              <i class="fa-solid fa-ban"></i> 1. No "S" for He/She/It
+            </div>
+            <p class="text-xs text-white/90">Never add <span class="font-mono bg-white/20 px-1 rounded">-s</span> or <span class="font-mono bg-white/20 px-1 rounded">-ed</span>.</p>
+            <div class="mt-2 text-xs font-mono bg-black/20 p-2 rounded-lg">
+              <span class="text-emerald-300">✓ She can play</span><br>
+              <span class="text-rose-300 line-through">✗ She cans play</span>
+            </div>
+          </div>
+
+          <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15">
+            <div class="flex items-center gap-2 font-bold text-sm text-yellow-300 mb-1">
+              <i class="fa-solid fa-xmark"></i> 2. Never Say "to"
+            </div>
+            <p class="text-xs text-white/90">Use the base verb directly right after the modal.</p>
+            <div class="mt-2 text-xs font-mono bg-black/20 p-2 rounded-lg">
+              <span class="text-emerald-300">✓ I must sleep</span><br>
+              <span class="text-rose-300 line-through">✗ I must to sleep</span>
+            </div>
+          </div>
+
+          <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15">
+            <div class="flex items-center gap-2 font-bold text-sm text-yellow-300 mb-1">
+              <i class="fa-solid fa-question"></i> 3. Easy Questions
+            </div>
+            <p class="text-xs text-white/90">Just put the modal verb in the front to ask a question!</p>
+            <div class="mt-2 text-xs font-mono bg-black/20 p-2 rounded-lg">
+              <span class="text-emerald-300">✓ Can you help?</span><br>
+              <span class="text-rose-300 line-through">✗ Do you can help?</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Sentence Builder (Sandbox) -->
+    <section id="sandbox" class="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+        <div>
+          <div class="flex items-center gap-2 text-sky-600 dark:text-sky-400 font-bold text-xs uppercase tracking-wider">
+            <i class="fa-solid fa-cubes"></i> Interactive Sandbox
+          </div>
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white">Make Your Sentence!</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Click words to build a sentence and test the grammar rule live:</p>
+        </div>
+        <button onclick="randomizeSentence()" class="self-start sm:self-auto text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-shuffle text-sky-500"></i> Randomize
+        </button>
+      </div>
+
+      <!-- Controls -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+        <!-- Subject -->
+        <div class="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-slate-200 dark:border-slate-700">
+          <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase">1. Who? (Subject)</label>
+          <div class="flex flex-wrap gap-1.5" id="subjectButtons">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Modal -->
+        <div class="bg-sky-50/50 dark:bg-sky-950/20 p-3 rounded-2xl border border-sky-100 dark:border-sky-900/40">
+          <label class="block text-xs font-bold text-sky-600 dark:text-sky-400 mb-2 uppercase">2. Modal Verb</label>
+          <div class="flex flex-wrap gap-1.5" id="modalButtons">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Action Verb -->
+        <div class="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-slate-200 dark:border-slate-700">
+          <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase">3. Action (Base Verb)</label>
+          <div class="flex flex-wrap gap-1.5" id="verbButtons">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Result Banner -->
+      <div class="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <button onclick="speakBuilderSentence()" class="w-12 h-12 rounded-xl bg-sky-500 hover:bg-sky-400 active:scale-95 text-white flex items-center justify-center text-lg shadow-md transition flex-shrink-0" title="Listen to sentence">
+            <i class="fa-solid fa-volume-high"></i>
+          </button>
+          <div>
+            <div class="text-[11px] text-sky-300 font-semibold tracking-wide uppercase">Your Sentence:</div>
+            <div id="builderResultSentence" class="text-xl sm:text-2xl font-extrabold font-mono tracking-tight text-white">
+              She can swim.
+            </div>
+            <div id="builderRuleTip" class="text-xs text-emerald-300 font-medium mt-0.5">
+              Notice: Even with "She", we write "can swim", never "cans swim"!
+            </div>
+          </div>
+        </div>
+
+        <button onclick="copyCurrentBuilderSentence()" class="px-3.5 py-2 text-xs font-semibold rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-white flex items-center gap-1.5 transition">
+          <i class="fa-regular fa-copy"></i> Copy Sentence
+        </button>
+      </div>
+    </section>
+
+    <!-- Simple Table & Cards Explorer -->
+    <section class="space-y-4">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <span>Modal Verbs Directory</span>
+            <span class="text-xs font-normal text-slate-500 dark:text-slate-400">(Click any card to explore)</span>
+          </h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Short rules and easy everyday example sentences</p>
+        </div>
+
+        <!-- Filter categories -->
+        <div class="flex items-center gap-1.5 overflow-x-auto max-w-full pb-1 text-xs" id="quickPills">
+          <button onclick="filterByPurpose('all')" data-purpose="all" class="purpose-pill px-3 py-1.5 rounded-full font-bold bg-sky-600 text-white whitespace-nowrap shadow-sm">All</button>
+          <button onclick="filterByPurpose('Ability')" data-purpose="Ability" class="purpose-pill px-3 py-1.5 rounded-full font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 whitespace-nowrap">Ability</button>
+          <button onclick="filterByPurpose('Permission')" data-purpose="Permission" class="purpose-pill px-3 py-1.5 rounded-full font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 whitespace-nowrap">Permission</button>
+          <button onclick="filterByPurpose('Advice')" data-purpose="Advice" class="purpose-pill px-3 py-1.5 rounded-full font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 whitespace-nowrap">Advice</button>
+          <button onclick="filterByPurpose('Rule / Must')" data-purpose="Rule / Must" class="purpose-pill px-3 py-1.5 rounded-full font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 whitespace-nowrap">Rules</button>
+          <button onclick="filterByPurpose('Possibility')" data-purpose="Possibility" class="purpose-pill px-3 py-1.5 rounded-full font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 whitespace-nowrap">Possibility</button>
+        </div>
+      </div>
+
+      <!-- Quick Modal Selector Chips -->
+      <div class="flex items-center gap-2 overflow-x-auto pb-1" id="quickModalSelector">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Main Clean Responsive Table -->
+      <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-100/70 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th class="py-3 px-4 w-28">Modal</th>
+                <th class="py-3 px-4 w-44">Simple Meaning</th>
+                <th class="py-3 px-4 w-48">How to use (Formula)</th>
+                <th class="py-3 px-4">Simple Example Sentences</th>
+                <th class="py-3 px-4 w-20 text-center">Audio</th>
+              </tr>
+            </thead>
+            <tbody id="simpleTableBody" class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Quiz Game -->
+    <section id="quiz" class="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 border-b border-slate-100 dark:border-slate-800 pb-4">
+        <div>
+          <div class="flex items-center gap-2 text-amber-500 font-bold text-xs uppercase tracking-wider">
+            <i class="fa-solid fa-trophy"></i> Practice Game
+          </div>
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white">Fill in the Blank Quiz</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Pick the best modal verb for each simple situation!</p>
+        </div>
+
+        <!-- Score Badge -->
+        <div class="flex items-center gap-3">
+          <div class="text-right">
+            <div class="text-[10px] uppercase font-bold text-slate-400">Score</div>
+            <div class="text-base font-bold text-slate-800 dark:text-slate-100 font-mono">
+              <span id="quizScore">0</span> / <span id="quizTotal">0</span>
+            </div>
+          </div>
+          <button onclick="nextQuizQuestion()" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5">
+            <span>Next Question</span>
+            <i class="fa-solid fa-arrow-right text-xs"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quiz Card Area -->
+      <div id="quizContainer" class="max-w-2xl mx-auto space-y-4">
+        <!-- Question display -->
+        <div class="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 text-center">
+          <div id="quizPromptContext" class="text-xs font-semibold text-sky-600 dark:text-sky-400 mb-1">
+            Context: Ability
+          </div>
+          <div id="quizSentence" class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white my-3">
+            Loading question...
+          </div>
+          <div id="quizHint" class="text-xs text-slate-500 dark:text-slate-400 italic">
+            Hint: Thinking about natural ability
+          </div>
+        </div>
+
+        <!-- Choice Options -->
+        <div id="quizOptions" class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Feedback alert -->
+        <div id="quizFeedback" class="hidden p-3.5 rounded-2xl text-xs font-semibold text-center transition-all">
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 bg-slate-900 text-white dark:bg-white dark:text-slate-900 px-4 py-2.5 rounded-xl shadow-xl text-xs font-semibold flex items-center gap-2 transition-all duration-300 opacity-0 pointer-events-none transform translate-y-3">
+    <i class="fa-solid fa-circle-check text-emerald-400 dark:text-emerald-600"></i>
+    <span id="toastText">Copied!</span>
+  </div>
+
+  <script>
+    // --- SIMPLE MODAL DATASET ---
+    const simpleModals = [
+      {
+        modal: "Can",
+        category: "Ability",
+        meaning: "Able to do something (Ability) or asking for permission",
+        formula: "Subject + can + base verb",
+        negative: "cannot / can't",
+        examples: [
+          "I {can} swim very well.",
+          "She {can} speak English.",
+          "{Can} I use your pen, please?"
+        ],
+        tip: "Never use 'cans'. Even with he/she: 'He can swim'."
+      },
+      {
+        modal: "Could",
+        category: "Ability",
+        meaning: "Past ability (was able to) or polite request",
+        formula: "Subject + could + base verb",
+        negative: "could not / couldn't",
+        examples: [
+          "When I was six, I {could} ride a bike.",
+          "{Could} you open the door, please?"
+        ],
+        tip: "'Could' is softer and more polite than 'Can'."
+      },
+      {
+        modal: "Must",
+        category: "Rule / Must",
+        meaning: "100% necessary, important rule, or law",
+        formula: "Subject + must + base verb",
+        negative: "must not / mustn't (forbidden)",
+        examples: [
+          "You {must} stop at red lights.",
+          "You {must} wash your hands before eating.",
+          "You {must not} touch this wire."
+        ],
+        tip: "'Must not' means it is forbidden/illegal."
+      },
+      {
+        modal: "Should",
+        category: "Advice",
+        meaning: "Good idea or friendly advice",
+        formula: "Subject + should + base verb",
+        negative: "should not / shouldn't",
+        examples: [
+          "You look tired, you {should} sleep early.",
+          "We {should} eat more fresh fruits.",
+          "You {shouldn't} eat too much sugar."
+        ],
+        tip: "Use 'should' to give friendly tips and suggestions."
+      },
+      {
+        modal: "May",
+        category: "Permission",
+        meaning: "Polite permission or 50% maybe",
+        formula: "Subject + may + base verb",
+        negative: "may not",
+        examples: [
+          "{May} I come in, teacher?",
+          "It {may} rain this afternoon."
+        ],
+        tip: "'May I' is very polite and respectful."
+      },
+      {
+        modal: "Might",
+        category: "Possibility",
+        meaning: "Small possibility (maybe 30%)",
+        formula: "Subject + might + base verb",
+        negative: "might not",
+        examples: [
+          "I {might} go to the party, but I am not sure.",
+          "Take an umbrella, it {might} rain."
+        ],
+        tip: "Means 'maybe yes, maybe no'."
+      },
+      {
+        modal: "Will",
+        category: "Future",
+        meaning: "Future action or spontaneous promise",
+        formula: "Subject + will + base verb",
+        negative: "will not / won't",
+        examples: [
+          "I {will} call you tomorrow.",
+          "The train {will} arrive at 9:00 AM.",
+          "I {won't} forget your birthday."
+        ],
+        tip: "Short form: I will = I'll, Will not = Won't."
+      },
+      {
+        modal: "Would",
+        category: "Polite Request",
+        meaning: "Polite request, 'would like' (want), or imagining",
+        formula: "Subject + would + base verb",
+        negative: "would not / wouldn't",
+        examples: [
+          "I {would} like a glass of water, please.",
+          "{Would} you like some coffee?",
+          "If I had wings, I {would} fly."
+        ],
+        tip: "'Would like' is the polite way to say 'want'."
+      }
+    ];
+
+    // --- BUILDER DATA ---
+    const builderData = {
+      subjects: ["I", "You", "He", "She", "We", "They"],
+      modals: ["can", "could", "must", "should", "may", "will", "would"],
+      verbs: [
+        { verb: "swim", end: "in the pool" },
+        { verb: "read", end: "a book" },
+        { verb: "eat", end: "an apple" },
+        { verb: "drink", end: "water" },
+        { verb: "play", end: "the guitar" },
+        { verb: "sleep", end: "for 8 hours" }
+      ]
+    };
+
+    let builderState = {
+      subject: "She",
+      modal: "can",
+      verbObj: builderData.verbs[0]
+    };
+
+    // --- QUIZ DATA ---
+    const quizQuestions = [
+      {
+        context: "Advice & Health",
+        sentence: "You have a high fever. You ___ see a doctor.",
+        correct: "should",
+        options: ["should", "could", "might", "would"],
+        explanation: "Giving good advice for health uses 'should'."
+      },
+      {
+        context: "Traffic Law & Rule",
+        sentence: "Drivers ___ wear their seatbelt in the car.",
+        correct: "must",
+        options: ["must", "might", "could", "may"],
+        explanation: "It is an official law and necessity, so we use 'must'."
+      },
+      {
+        context: "Natural Ability",
+        sentence: "Penguins are birds, but they ___ fly.",
+        correct: "cannot",
+        options: ["cannot", "must not", "should not", "won't"],
+        explanation: "'Cannot' describes a physical lack of ability."
+      },
+      {
+        context: "Polite Classroom Question",
+        sentence: "Teacher, ___ I drink some water, please?",
+        correct: "May",
+        options: ["May", "Must", "Should", "Will"],
+        explanation: "'May I...' is the most polite way to ask a teacher for permission."
+      },
+      {
+        context: "Polite Ordering in a Cafe",
+        sentence: "I ___ like an orange juice, please.",
+        correct: "would",
+        options: ["would", "can", "must", "shall"],
+        explanation: "'Would like' is the polite way of saying 'I want'."
+      },
+      {
+        context: "Past Ability",
+        sentence: "When Leo was five years old, he ___ already read books.",
+        correct: "could",
+        options: ["could", "can", "must", "should"],
+        explanation: "'Could' expresses ability in the past."
+      },
+      {
+        context: "Uncertain Weather",
+        sentence: "There are few clouds. It ___ rain, but I doubt it.",
+        correct: "might",
+        options: ["might", "must", "can", "should"],
+        explanation: "'Might' expresses a small, uncertain chance."
+      }
+    ];
+
+    let currentQuizIndex = 0;
+    let quizScore = 0;
+    let answeredCurrent = false;
+    let activeFilter = 'all';
+
+    // Highlight text helper
+    function highlightSentence(str) {
+      return str.replace(/\{([^}]+)\}/g, '<span class="modal-tag">$1</span>');
+    }
+
+    // Clean text helper for speech
+    function cleanForSpeech(str) {
+      return str.replace(/\{|\}/g, '');
+    }
+
+    // Speech Synthesis Audio Player
+    function speakText(text) {
+      if (!('speechSynthesis' in window)) {
+        showToast("Audio not supported in this browser");
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(cleanForSpeech(text));
+      utterance.rate = 0.9;
+      utterance.pitch = 1;
+      utterance.lang = 'en-US';
+      window.speechSynthesis.speak(utterance);
+    }
+
+    // Render Table
+    function renderSimpleTable() {
+      const tbody = document.getElementById('simpleTableBody');
+      const filtered = simpleModals.filter(m => {
+        if (activeFilter === 'all') return true;
+        return m.category.toLowerCase().includes(activeFilter.toLowerCase()) ||
+               m.meaning.toLowerCase().includes(activeFilter.toLowerCase());
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-slate-400 text-xs">No matching modal found. Click "All" to view everything.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(item => {
+        const firstExampleClean = cleanForSpeech(item.examples[0]);
+        return `
+          <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition">
+            <!-- Modal Name -->
+            <td class="py-3 px-4 align-top">
+              <span class="inline-block font-mono text-base font-bold text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/80 px-2.5 py-1 rounded-xl border border-sky-200 dark:border-sky-800">
+                ${item.modal}
+              </span>
+            </td>
+
+            <!-- Meaning -->
+            <td class="py-3 px-4 align-top">
+              <div class="text-xs font-semibold text-slate-800 dark:text-slate-100">${item.meaning}</div>
+              <div class="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5">Tip: ${item.tip}</div>
+            </td>
+
+            <!-- Formula -->
+            <td class="py-3 px-4 align-top">
+              <div class="text-[11px] font-mono bg-slate-100 dark:bg-slate-800 p-1.5 rounded-lg text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 inline-block">
+                ${item.formula}
+              </div>
+              <div class="text-[10px] text-rose-500 font-semibold mt-1">Neg: ${item.negative}</div>
+            </td>
+
+            <!-- Examples with audio inline -->
+            <td class="py-3 px-4 align-top">
+              <div class="space-y-1.5">
+                ${item.examples.map(ex => `
+                  <div class="flex items-center justify-between gap-2 text-xs bg-slate-50 dark:bg-slate-800/60 px-2.5 py-1.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <span class="text-slate-700 dark:text-slate-200">${highlightSentence(ex)}</span>
+                    <button onclick="speakText('${cleanForSpeech(ex)}')" class="text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 p-1 transition" title="Listen">
+                      <i class="fa-solid fa-volume-high text-xs"></i>
+                    </button>
+                  </div>
+                `).join('')}
+              </div>
+            </td>
+
+            <!-- Single Quick Listen Button -->
+            <td class="py-3 px-4 align-top text-center">
+              <button onclick="speakText('${firstExampleClean}')" class="w-8 h-8 rounded-full bg-sky-100 hover:bg-sky-200 text-sky-700 dark:bg-slate-800 dark:text-sky-300 dark:hover:bg-slate-700 flex items-center justify-center mx-auto transition" title="Play first example">
+                <i class="fa-solid fa-play text-xs"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Render Quick Selector chips
+    function renderQuickSelectors() {
+      const container = document.getElementById('quickModalSelector');
+      container.innerHTML = simpleModals.map(m => `
+        <button onclick="selectModalFromChip('${m.modal}')" class="px-3 py-1 text-xs font-mono font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-sky-500 hover:text-sky-600 dark:hover:text-sky-400 transition whitespace-nowrap shadow-xs">
+          ${m.modal}
+        </button>
+      `).join('');
+    }
+
+    function selectModalFromChip(modalName) {
+      // Find modal and set in builder
+      const found = builderData.modals.find(m => m.toLowerCase() === modalName.toLowerCase());
+      if (found) {
+        builderState.modal = found;
+        renderBuilder();
+        showToast(`Loaded "${modalName}" into Sentence Builder!`);
+        document.getElementById('sandbox').scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
+    function filterByPurpose(purpose) {
+      activeFilter = purpose;
+      const pills = document.querySelectorAll('.purpose-pill');
+      pills.forEach(p => {
+        if (p.getAttribute('data-purpose') === purpose) {
+          p.className = 'purpose-pill px-3 py-1.5 rounded-full font-bold bg-sky-600 text-white whitespace-nowrap shadow-sm';
+        } else {
+          p.className = 'purpose-pill px-3 py-1.5 rounded-full font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 whitespace-nowrap';
+        }
+      });
+      renderSimpleTable();
+    }
+
+    // --- SENTENCE BUILDER LOGIC ---
+    function renderBuilder() {
+      // Subjects
+      const subContainer = document.getElementById('subjectButtons');
+      subContainer.innerHTML = builderData.subjects.map(s => `
+        <button onclick="setBuilderSubject('${s}')" class="px-2.5 py-1 text-xs font-bold rounded-lg border transition ${builderState.subject === s ? 'bg-sky-600 border-sky-600 text-white shadow-xs' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'}">
+          ${s}
+        </button>
+      `).join('');
+
+      // Modals
+      const modContainer = document.getElementById('modalButtons');
+      modContainer.innerHTML = builderData.modals.map(m => `
+        <button onclick="setBuilderModal('${m}')" class="px-2.5 py-1 text-xs font-mono font-bold rounded-lg border transition ${builderState.modal === m ? 'bg-indigo-600 border-indigo-600 text-white shadow-xs' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-slate-700'}">
+          ${m}
+        </button>
+      `).join('');
+
+      // Verbs
+      const verbContainer = document.getElementById('verbButtons');
+      verbContainer.innerHTML = builderData.verbs.map((v, idx) => `
+        <button onclick="setBuilderVerb(${idx})" class="px-2.5 py-1 text-xs font-bold rounded-lg border transition ${builderState.verbObj.verb === v.verb ? 'bg-sky-600 border-sky-600 text-white shadow-xs' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'}">
+          ${v.verb}
+        </button>
+      `).join('');
+
+      // Sentence Output
+      const sentence = `${builderState.subject} ${builderState.modal} ${builderState.verbObj.verb} ${builderState.verbObj.end}.`;
+      document.getElementById('builderResultSentence').innerText = sentence;
+
+      // Dynamic Tip explaining the rule
+      let tip = `Notice: Even with "${builderState.subject}", we say "${builderState.modal} ${builderState.verbObj.verb}", never "${builderState.modal}s" or "${builderState.modal} to ${builderState.verbObj.verb}"!`;
+      document.getElementById('builderRuleTip').innerText = tip;
+    }
+
+    function setBuilderSubject(s) {
+      builderState.subject = s;
+      renderBuilder();
+    }
+    function setBuilderModal(m) {
+      builderState.modal = m;
+      renderBuilder();
+    }
+    function setBuilderVerb(idx) {
+      builderState.verbObj = builderData.verbs[idx];
+      renderBuilder();
+    }
+    function randomizeSentence() {
+      const randSub = builderData.subjects[Math.floor(Math.random() * builderData.subjects.length)];
+      const randMod = builderData.modals[Math.floor(Math.random() * builderData.modals.length)];
+      const randVerb = builderData.verbs[Math.floor(Math.random() * builderData.verbs.length)];
+      builderState = { subject: randSub, modal: randMod, verbObj: randVerb };
+      renderBuilder();
+    }
+
+    function speakBuilderSentence() {
+      const sentence = document.getElementById('builderResultSentence').innerText;
+      speakText(sentence);
+    }
+
+    function copyCurrentBuilderSentence() {
+      const text = document.getElementById('builderResultSentence').innerText;
+      copySentence(text);
+    }
+
+    // --- QUIZ LOGIC ---
+    function renderQuiz() {
+      answeredCurrent = false;
+      const q = quizQuestions[currentQuizIndex];
+      document.getElementById('quizPromptContext').innerText = `Situation: ${q.context}`;
+      document.getElementById('quizSentence').innerText = q.sentence;
+      document.getElementById('quizHint').innerText = "Pick the most accurate modal:";
+
+      const feedback = document.getElementById('quizFeedback');
+      feedback.className = "hidden p-3.5 rounded-2xl text-xs font-semibold text-center";
+      feedback.innerText = "";
+
+      const optionsContainer = document.getElementById('quizOptions');
+      optionsContainer.innerHTML = q.options.map(opt => `
+        <button onclick="handleQuizAnswer('${opt}')" class="quiz-btn py-3 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-sky-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 font-bold font-mono text-sm transition active:scale-95">
+          ${opt}
+        </button>
+      `).join('');
+
+      document.getElementById('quizTotal').innerText = quizQuestions.length;
+    }
+
+    function handleQuizAnswer(selected) {
+      if (answeredCurrent) return;
+      answeredCurrent = true;
+
+      const q = quizQuestions[currentQuizIndex];
+      const feedback = document.getElementById('quizFeedback');
+      const isCorrect = (selected.toLowerCase() === q.correct.toLowerCase());
+
+      feedback.classList.remove('hidden');
+
+      const buttons = document.querySelectorAll('.quiz-btn');
+      buttons.forEach(btn => {
+        const text = btn.innerText.trim();
+        if (text.toLowerCase() === q.correct.toLowerCase()) {
+          btn.className = "quiz-btn py-3 px-4 rounded-xl border-2 border-emerald-500 bg-emerald-500 text-white font-bold font-mono text-sm";
+        } else if (text.toLowerCase() === selected.toLowerCase() && !isCorrect) {
+          btn.className = "quiz-btn py-3 px-4 rounded-xl border-2 border-rose-500 bg-rose-500 text-white font-bold font-mono text-sm";
+        } else {
+          btn.classList.add('opacity-40');
+        }
+      });
+
+      if (isCorrect) {
+        quizScore++;
+        document.getElementById('quizScore').innerText = quizScore;
+        feedback.className = "p-3.5 rounded-2xl text-xs font-semibold text-center bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800";
+        feedback.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600 mr-1.5"></i> Correct! ${q.explanation}`;
+        speakText(q.sentence.replace('___', q.correct));
+      } else {
+        feedback.className = "p-3.5 rounded-2xl text-xs font-semibold text-center bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800";
+        feedback.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-600 mr-1.5"></i> Oops! The answer is <strong>${q.correct}</strong>. ${q.explanation}`;
+      }
+    }
+
+    function nextQuizQuestion() {
+      currentQuizIndex = (currentQuizIndex + 1) % quizQuestions.length;
+      renderQuiz();
+    }
+
+    // Clipboard copy with notification
+    function copySentence(text) {
+      const clean = cleanForSpeech(text);
+      const tempInput = document.createElement("input");
+      tempInput.value = clean;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      try {
+        document.execCommand("copy");
+        showToast(`Copied: "${clean}"`);
+      } catch (e) {
+        showToast("Copied to clipboard!");
+      }
+      document.body.removeChild(tempInput);
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      const toastText = document.getElementById('toastText');
+      toastText.innerText = msg;
+      toast.classList.remove('opacity-0', 'translate-y-3', 'pointer-events-none');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'translate-y-3', 'pointer-events-none');
+      }, 2500);
+    }
+
+    // Dark Mode Toggle
+    function toggleDarkMode() {
+      const html = document.documentElement;
+      const icon = document.getElementById('themeIcon');
+      if (html.classList.contains('dark')) {
+        html.classList.remove('dark');
+        icon.className = "fa-solid fa-moon";
+        localStorage.setItem('theme', 'light');
+      } else {
+        html.classList.add('dark');
+        icon.className = "fa-solid fa-sun text-amber-400";
+        localStorage.setItem('theme', 'dark');
+      }
+    }
+
+    // Init theme
+    (function initTheme() {
+      if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+        const icon = document.getElementById('themeIcon');
+        if (icon) icon.className = "fa-solid fa-sun text-amber-400";
+      }
+    })();
+
+    // Initialize all sections on DOM ready
+    window.addEventListener('DOMContentLoaded', () => {
+      renderSimpleTable();
+      renderQuickSelectors();
+      renderBuilder();
+      renderQuiz();
+    });
+  </script>
+</body>
+</html>
