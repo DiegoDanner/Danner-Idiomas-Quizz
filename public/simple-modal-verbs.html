@@ -44,6 +44,28 @@
       background-color: #854d0e;
       color: #fef9c3;
     }
+    .quiz-confetti-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .quiz-confetti {
+      position: absolute;
+      width: 0.55rem;
+      height: 1rem;
+      border-radius: 2px;
+      animation: quiz-confetti-fall 3s cubic-bezier(0.15, 0.7, 0.35, 1) forwards;
+    }
+    @keyframes quiz-confetti-fall {
+      0% { opacity: 1; transform: translate3d(0, 0, 0) rotate(0); }
+      15% { transform: translate3d(var(--confetti-drift), -5rem, 0) rotate(180deg); }
+      100% { opacity: 0; transform: translate3d(calc(var(--confetti-drift) * 1.7), 100vh, 0) rotate(var(--confetti-rotation)); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .quiz-confetti-layer { display: none; }
+    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 min-h-screen transition-colors duration-200">
@@ -66,12 +88,12 @@
 
       <!-- Quick Nav & Dark toggle -->
       <div class="flex items-center gap-2">
-        <a href="#sandbox" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-sky-50 text-sky-700 dark:bg-slate-800 dark:text-sky-300 hover:bg-sky-100 transition">
+        <button type="button" onclick="setLearningStep(1)" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-sky-50 text-sky-700 dark:bg-slate-800 dark:text-sky-300 hover:bg-sky-100 transition">
           <i class="fa-solid fa-cubes text-xs"></i> Sentence Builder
-        </a>
-        <a href="#quiz" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-50 text-amber-700 dark:bg-slate-800 dark:text-amber-300 hover:bg-amber-100 transition">
+        </button>
+        <button type="button" onclick="setLearningStep(3)" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-50 text-amber-700 dark:bg-slate-800 dark:text-amber-300 hover:bg-amber-100 transition">
           <i class="fa-solid fa-gamepad text-xs"></i> Quick Quiz
-        </a>
+        </button>
         <button onclick="toggleDarkMode()" class="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 transition" title="Toggle Mode">
           <i id="themeIcon" class="fa-solid fa-moon"></i>
         </button>
@@ -80,7 +102,31 @@
   </header>
 
   <main class="max-w-6xl mx-auto px-4 py-6 space-y-8">
+    <nav aria-label="Learning progress" class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
+      <div class="mb-3 flex items-center justify-between gap-3">
+        <span id="learningStepLabel" class="text-sm font-bold text-slate-900 dark:text-white">Step 1 of 4: Introduction</span>
+        <span id="learningProgressLabel" class="text-xs font-semibold text-slate-500 dark:text-slate-400">25% complete</span>
+      </div>
+      <div class="mb-4 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800" role="progressbar" aria-valuemin="1" aria-valuemax="4" aria-valuenow="1" aria-label="Learning progress">
+        <div id="learningProgressBar" class="h-full rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 transition-all duration-300" style="width: 25%"></div>
+      </div>
+      <div class="grid grid-cols-4 gap-2">
+        <button type="button" data-learning-tab="0" onclick="setLearningStep(0)" aria-current="step" class="learning-tab flex min-w-0 items-center justify-center gap-1.5 rounded-xl bg-sky-600 px-2 py-2 text-xs font-bold text-white transition sm:justify-start sm:px-3">
+          <i class="fa-solid fa-star"></i><span class="hidden truncate sm:inline">Introduction</span><span class="sm:hidden">1</span>
+        </button>
+        <button type="button" data-learning-tab="1" onclick="setLearningStep(1)" class="learning-tab flex min-w-0 items-center justify-center gap-1.5 rounded-xl bg-slate-50 px-2 py-2 text-xs font-bold text-slate-500 transition hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 sm:justify-start sm:px-3">
+          <i class="fa-solid fa-cubes"></i><span class="hidden truncate sm:inline">Sentences</span><span class="sm:hidden">2</span>
+        </button>
+        <button type="button" data-learning-tab="2" onclick="setLearningStep(2)" class="learning-tab flex min-w-0 items-center justify-center gap-1.5 rounded-xl bg-slate-50 px-2 py-2 text-xs font-bold text-slate-500 transition hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 sm:justify-start sm:px-3">
+          <i class="fa-solid fa-book-open"></i><span class="hidden truncate sm:inline">Modal Verbs</span><span class="sm:hidden">3</span>
+        </button>
+        <button type="button" data-learning-tab="3" onclick="setLearningStep(3)" class="learning-tab flex min-w-0 items-center justify-center gap-1.5 rounded-xl bg-slate-50 px-2 py-2 text-xs font-bold text-slate-500 transition hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 sm:justify-start sm:px-3">
+          <i class="fa-solid fa-gamepad"></i><span class="hidden truncate sm:inline">Quiz</span><span class="sm:hidden">4</span>
+        </button>
+      </div>
+    </nav>
 
+    <div data-learning-step="0" class="learning-step space-y-8">
     <!-- 3 Golden Rules (Kid & Learner Friendly) -->
     <section class="bg-gradient-to-r from-sky-600 via-indigo-600 to-purple-600 rounded-3xl p-5 sm:p-6 text-white shadow-lg relative overflow-hidden">
       <div class="relative z-10">
@@ -125,7 +171,9 @@
         </div>
       </div>
     </section>
+    </div>
 
+    <div data-learning-step="1" class="learning-step hidden space-y-8">
     <!-- Interactive Sentence Builder (Sandbox) -->
     <section id="sandbox" class="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
@@ -190,7 +238,9 @@
         </button>
       </div>
     </section>
+    </div>
 
+    <div data-learning-step="2" class="learning-step hidden space-y-8">
     <!-- Simple Table & Cards Explorer -->
     <section class="space-y-4">
       <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -238,7 +288,9 @@
         </div>
       </div>
     </section>
+    </div>
 
+    <div data-learning-step="3" class="learning-step hidden space-y-8">
     <!-- Interactive Quiz Game -->
     <section id="quiz" class="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 border-b border-slate-100 dark:border-slate-800 pb-4">
@@ -258,9 +310,9 @@
               <span id="quizScore">0</span> / <span id="quizTotal">0</span>
             </div>
           </div>
-          <button onclick="nextQuizQuestion()" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5">
-            <span>Next Question</span>
-            <i class="fa-solid fa-arrow-right text-xs"></i>
+          <button id="nextQuizButton" onclick="nextQuizQuestion()" disabled class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-50">
+            <span id="nextQuizButtonLabel">Next Question</span>
+            <i id="nextQuizButtonIcon" class="fa-solid fa-arrow-right text-xs"></i>
           </button>
         </div>
       </div>
@@ -289,7 +341,28 @@
         <div id="quizFeedback" class="hidden p-3.5 rounded-2xl text-xs font-semibold text-center transition-all">
         </div>
       </div>
+      <div id="quizResults" class="hidden max-w-2xl mx-auto space-y-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center dark:border-emerald-900 dark:bg-emerald-950/40">
+        <i class="fa-solid fa-trophy text-3xl text-amber-500"></i>
+        <h4 class="text-xl font-extrabold text-slate-900 dark:text-white">Quiz complete!</h4>
+        <p class="text-sm text-slate-600 dark:text-slate-300">You scored <strong id="quizFinalScore">0 out of 0</strong>.</p>
+        <button type="button" onclick="restartQuiz()" class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-emerald-700">
+          Play Again
+        </button>
+      </div>
     </section>
+    </div>
+
+    <div class="flex items-center justify-between gap-3">
+      <button id="previousLearningStep" type="button" onclick="setLearningStep(currentLearningStep - 1)" disabled class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-bold text-slate-700 dark:text-slate-200 transition hover:bg-slate-100 dark:hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40">
+        <i class="fa-solid fa-arrow-left mr-2"></i>Previous
+      </button>
+      <button id="nextLearningStep" type="button" onclick="setLearningStep(currentLearningStep + 1)" class="rounded-xl bg-sky-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-sky-700">
+        Continue<i class="fa-solid fa-arrow-right ml-2"></i>
+      </button>
+      <span id="learningCompleteMessage" class="hidden text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+        <i class="fa-solid fa-circle-check mr-2"></i>Course complete
+      </span>
+    </div>
 
   </main>
 
@@ -481,7 +554,86 @@
     let currentQuizIndex = 0;
     let quizScore = 0;
     let answeredCurrent = false;
+    let quizFinished = false;
     let activeFilter = 'all';
+    let currentLearningStep = 0;
+
+    function celebrateQuizCompletion() {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      document.getElementById('quizConfetti')?.remove();
+      const layer = document.createElement('div');
+      layer.id = 'quizConfetti';
+      layer.className = 'quiz-confetti-layer';
+      layer.setAttribute('aria-hidden', 'true');
+      const colors = ['#0ea5e9', '#6366f1', '#a855f7', '#f43f5e', '#f59e0b', '#10b981'];
+
+      for (let index = 0; index < 90; index++) {
+        const ribbon = document.createElement('span');
+        ribbon.className = 'quiz-confetti';
+        ribbon.style.left = `${35 + Math.random() * 30}%`;
+        ribbon.style.top = `${20 + Math.random() * 20}%`;
+        ribbon.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        ribbon.style.animationDelay = `${Math.random() * 250}ms`;
+        ribbon.style.setProperty('--confetti-drift', `${(Math.random() - 0.5) * 400}px`);
+        ribbon.style.setProperty('--confetti-rotation', `${360 + Math.random() * 1080}deg`);
+        layer.appendChild(ribbon);
+      }
+
+      document.body.appendChild(layer);
+      window.setTimeout(() => layer.remove(), 3500);
+    }
+
+    function shuffleQuizOptions(options, correct) {
+      const shuffled = [...options];
+      for (let index = shuffled.length - 1; index > 0; index--) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+      }
+
+      if (shuffled[0].toLowerCase() === correct.toLowerCase()) {
+        const swapIndex = 1 + Math.floor(Math.random() * (shuffled.length - 1));
+        [shuffled[0], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[0]];
+      }
+
+      return shuffled;
+    }
+
+    function setLearningStep(step) {
+      const steps = Array.from(document.querySelectorAll('[data-learning-step]'));
+      const nextStep = Math.max(0, Math.min(step, steps.length - 1));
+      currentLearningStep = nextStep;
+
+      steps.forEach((section, index) => {
+        section.classList.toggle('hidden', index !== currentLearningStep);
+      });
+
+      const titles = ['Introduction', 'Sentences', 'Modal Verbs', 'Quiz'];
+      const progress = Math.round(((currentLearningStep + 1) / steps.length) * 100);
+      document.getElementById('learningStepLabel').innerText =
+        `Step ${currentLearningStep + 1} of ${steps.length}: ${titles[currentLearningStep]}`;
+      document.getElementById('learningProgressLabel').innerText = `${progress}% complete`;
+      document.getElementById('learningProgressBar').style.width = `${progress}%`;
+      document.querySelector('[role="progressbar"]').setAttribute('aria-valuenow', currentLearningStep + 1);
+
+      document.querySelectorAll('[data-learning-tab]').forEach((tab, index) => {
+        const isCurrent = index === currentLearningStep;
+        const isComplete = index < currentLearningStep;
+        tab.setAttribute('aria-current', isCurrent ? 'step' : 'false');
+        tab.className = `learning-tab flex min-w-0 items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-xs font-bold transition sm:justify-start sm:px-3 ${
+          isCurrent
+            ? 'bg-sky-600 text-white'
+            : isComplete
+              ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:text-emerald-300'
+              : 'bg-slate-50 text-slate-500 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700'
+        }`;
+      });
+
+      document.getElementById('previousLearningStep').disabled = currentLearningStep === 0;
+      document.getElementById('nextLearningStep').classList.toggle('hidden', currentLearningStep === steps.length - 1);
+      document.getElementById('learningCompleteMessage').classList.toggle('hidden', currentLearningStep !== steps.length - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
     // Highlight text helper
     function highlightSentence(str) {
@@ -588,7 +740,7 @@
         builderState.modal = found;
         renderBuilder();
         showToast(`Loaded "${modalName}" into Sentence Builder!`);
-        document.getElementById('sandbox').scrollIntoView({ behavior: 'smooth' });
+        setLearningStep(1);
       }
     }
 
@@ -673,6 +825,11 @@
     // --- QUIZ LOGIC ---
     function renderQuiz() {
       answeredCurrent = false;
+      document.getElementById('nextQuizButton').disabled = true;
+      document.getElementById('nextQuizButtonLabel').innerText =
+        currentQuizIndex === quizQuestions.length - 1 ? 'Finish Quiz' : 'Next Question';
+      document.getElementById('nextQuizButtonIcon').className =
+        `fa-solid ${currentQuizIndex === quizQuestions.length - 1 ? 'fa-flag-checkered' : 'fa-arrow-right'} text-xs`;
       const q = quizQuestions[currentQuizIndex];
       document.getElementById('quizPromptContext').innerText = `Situation: ${q.context}`;
       document.getElementById('quizSentence').innerText = q.sentence;
@@ -683,11 +840,15 @@
       feedback.innerText = "";
 
       const optionsContainer = document.getElementById('quizOptions');
-      optionsContainer.innerHTML = q.options.map(opt => `
-        <button onclick="handleQuizAnswer('${opt}')" class="quiz-btn py-3 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-sky-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 font-bold font-mono text-sm transition active:scale-95">
-          ${opt}
-        </button>
-      `).join('');
+      optionsContainer.replaceChildren();
+      shuffleQuizOptions(q.options, q.correct).forEach((option) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'quiz-btn py-3 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-sky-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 font-bold font-mono text-sm transition active:scale-95';
+        button.textContent = option;
+        button.addEventListener('click', () => handleQuizAnswer(option));
+        optionsContainer.appendChild(button);
+      });
 
       document.getElementById('quizTotal').innerText = quizQuestions.length;
     }
@@ -695,6 +856,7 @@
     function handleQuizAnswer(selected) {
       if (answeredCurrent) return;
       answeredCurrent = true;
+      document.getElementById('nextQuizButton').disabled = false;
 
       const q = quizQuestions[currentQuizIndex];
       const feedback = document.getElementById('quizFeedback');
@@ -727,7 +889,29 @@
     }
 
     function nextQuizQuestion() {
-      currentQuizIndex = (currentQuizIndex + 1) % quizQuestions.length;
+      if (!answeredCurrent || quizFinished) return;
+      if (currentQuizIndex === quizQuestions.length - 1) {
+        quizFinished = true;
+        document.getElementById('quizContainer').classList.add('hidden');
+        document.getElementById('nextQuizButton').classList.add('hidden');
+        document.getElementById('quizResults').classList.remove('hidden');
+        document.getElementById('quizFinalScore').innerText = `${quizScore} out of ${quizQuestions.length}`;
+        celebrateQuizCompletion();
+        return;
+      }
+      currentQuizIndex++;
+      renderQuiz();
+    }
+
+    function restartQuiz() {
+      currentQuizIndex = 0;
+      quizScore = 0;
+      answeredCurrent = false;
+      quizFinished = false;
+      document.getElementById('quizScore').innerText = quizScore;
+      document.getElementById('quizContainer').classList.remove('hidden');
+      document.getElementById('nextQuizButton').classList.remove('hidden');
+      document.getElementById('quizResults').classList.add('hidden');
       renderQuiz();
     }
 
@@ -789,6 +973,7 @@
       renderQuickSelectors();
       renderBuilder();
       renderQuiz();
+      setLearningStep(0);
     });
   </script>
 </body>
